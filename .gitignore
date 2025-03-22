@@ -172,3 +172,19 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+# Ignore Python bytecode and cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore virtual environments
+.venv/
+
+# Ignore environment variables and sensitive config files
+.env
+config.py
+
+# Ignore system files
+.DS_Store
+Thumbs.db
