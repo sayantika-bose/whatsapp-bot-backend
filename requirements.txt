@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+alembic
+pydantic
+twilio
+python-dotenv
+requests
+aiomysql
