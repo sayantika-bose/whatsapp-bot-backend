@@ -129,9 +129,10 @@ def submit_form(db: Session, data: dict):
         )
         logger.info(f"WhatsApp message sent with SID: {message.sid}")
         return {
+            "success": True,
             "message_sid": message.sid,
             "message": "Thanks for filling out the form...",
-            "created_at": new_user.created_at.isoformat()  # Include timestamp in response
+            "timestamp": new_user.created_at.isoformat()  # Include timestamp in response
         }, None
 
     except KeyError as e:
