@@ -3,7 +3,6 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from models.database import init_db
 from routers import auth, questions, users, webhook
 
@@ -40,7 +39,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_middleware(HTTPSRedirectMiddleware)
 
 # Include routers
 app.include_router(auth.router)

@@ -35,8 +35,9 @@ def get_user_replies_route(advisor_id: int, user_id: int, db: Session = Depends(
     replies = get_user_replies(db, advisor_id, user_id)  # Fetch replies from the database
     return [UserRepliesResponse.model_validate(r) for r in replies]  # Use model_validate
 
-@router.post("/users/send_message")
-def send_message_route(data: dict, db: Session = Depends(get_db)):
+@router.post("/send_message")
+async def send_message_route(data: dict, db: Session = Depends(get_db)):
     logger.info("Send message request received")
-    message_sids = send_message(db, data["content_sid"], data["advisor_id"], data.get("user_ids", []))
+    # Await the send_message function
+    message_sids = await send_message(db, data["content_sid"], data["advisor_id"], data.get("user_ids", []))
     return {"message_sids": message_sids}
