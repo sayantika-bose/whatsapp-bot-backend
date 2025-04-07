@@ -8,7 +8,7 @@ from models.auth_model import LoginRequest, LoginResponse
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-@router.post("/login")
+@router.post("/login", response_model=LoginResponse)
 def login_route(data: LoginRequest, db: Session = Depends(get_db)):
     logger.info("Login request received")
     advisor = login(db, data.email, data.password)  # Unwrap SecretStr here
