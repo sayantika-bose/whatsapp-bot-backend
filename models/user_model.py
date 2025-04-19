@@ -42,11 +42,3 @@ class UserRepliesResponse(BaseModel):
 
     class Config:
         from_attributes = True  # Enable ORM mode
-
-class DeleteUserRequest(BaseModel):
-    user_id: int
-    advisor_id: int
-
-class DeleteUserResponse(BaseModel):
-    message: str
-    user_id: int

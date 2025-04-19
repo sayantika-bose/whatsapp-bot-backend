@@ -17,7 +17,7 @@ from models.user_model import (
     DeleteUserResponse  
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(_name_)
 router = APIRouter()
 
 @router.get("/users/{advisor_id}", response_model=List[UserResponse])
