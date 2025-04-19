@@ -108,7 +108,7 @@ def submit_form(db: Session, data: dict):
             logger.error("Twilio client not initialized, skipping WhatsApp message")
             return {"message": "User created, but message not sent", "created_at": singapore_time.isoformat()}, None
 
-        content_sid = os.getenv("CONTENT_SID")
+        content_sid = os.getenv("FIRST_CONTENT_SID")
         from_number = os.getenv("TWILIO_PHONE_NUMBER")
         if not content_sid or not from_number:
             logger.error("Twilio configuration missing: content_sid or from_number not set")

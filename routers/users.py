@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from services.user_service import (
-    submit_form,
     get_users,
     get_user_replies,
     delete_user  # ✅ Import delete function
@@ -12,8 +11,6 @@ from services.user_service import (
 from services.messaging_service import send_message
 from models.database import get_db
 from models.user_model import (
-    SubmitFormRequest,
-    SubmitFormResponse,
     UserResponse,
     UserRepliesResponse,
     DeleteUserRequest,
@@ -22,18 +19,6 @@ from models.user_model import (
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-@router.post("/submit_form", response_model=SubmitFormResponse)
-def submit_form_route(data: SubmitFormRequest, db: Session = Depends(get_db)):
-    logger.info("Submit form request received")
-    if data.message:
-        logger.info(f"Message provided: {data.message}")
-    else:
-        logger.info("No message provided in the request")
-    result, error = submit_form(db, data.model_dump())
-    if error:
-        raise HTTPException(status_code=400 if "reCAPTCHA" in error else 409, detail=error)
-    return SubmitFormResponse(**result)
 
 @router.get("/users/{advisor_id}", response_model=List[UserResponse])
 def get_users_route(advisor_id: int, db: Session = Depends(get_db)):

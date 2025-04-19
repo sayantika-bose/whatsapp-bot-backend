@@ -56,87 +56,128 @@ twilio_rate_limiter = RateLimiter(MAX_REQUESTS_PER_SECOND, REQUEST_WINDOW)
 async def handle_webhook(db: AsyncSession, request: Request) -> Response:
     logger.info("Received webhook request")
     twiml_response = MessagingResponse()
-    
+
     try:
+        # Parse incoming form data from Twilio
         form_data = await request.form()
         logger.info(f"Received form data: {dict(form_data)}")
-        
+
         incoming_msg = form_data.get("Body", "").strip().lower()
         from_number = form_data.get("From", "").replace("whatsapp:", "")
-        
         logger.info(f"Processed webhook message from {from_number}: {incoming_msg}")
-        
-        # Use async context manager for session operations to ensure thread safety
+
+
+
+        # Access user session
         async with get_user_session(from_number) as user_data:
+
+            def final_msg():
+                final_content_sid = os.getenv('LAST_CONTENT_SID')
+                client.messages.create( content_sid=final_content_sid,
+                                        from_=f"whatsapp:{from_number}",
+                                        content_variables=json.dumps({"1": f"{user_data['salutation']} {user_data['first_name']}"}), 
+                                        to=f"whatsapp:{user_data['mobile_number']}", 
+                                        )
+
             if not user_data:
                 logger.warning(f"No session found for {from_number}")
                 twiml_response.message("Please submit the form to start the session.")
                 return Response(content=str(twiml_response), media_type="application/xml")
 
             advisor_id = user_data["advisor_id"]
-
+        
+            # ==== Start of session ====
             if user_data["current_step"] is None and incoming_msg == "start":
                 try:
                     session_manager.set_session(from_number, {**user_data, "current_step": 1})
-                    question = await get_question(db, advisor_id, 1)
-                    twiml_response.message(body=question.question if question else "No questions found.")
-                    logger.info(f"Started session for {from_number} with step 1")
+                    first_question = await get_question(db, advisor_id, 1)
+
+                    if first_question:
+                        twiml_response.message(body=first_question.question)
+                        logger.info(f"Started session for {from_number} with step 1")
+                    else:
+                        twiml_response.message("No questions found for the selected advisor.")
+                        session_manager.cleanup_sessions()
+                        logger.warning(f"No questions found for advisor {advisor_id}")
+
                     return Response(content=str(twiml_response), media_type="application/xml")
                 except Exception as e:
-                    logger.error(f"Error starting session for {from_number}: {str(e)}")
+                    logger.error(f"Error starting session: {str(e)}")
                     twiml_response.message("An error occurred while starting the session.")
                     return Response(content=str(twiml_response), media_type="application/xml")
-            elif user_data["current_step"]:
+
+            # ==== Session in progress ====
+            elif user_data["current_step"] is not None:
                 current_step = user_data["current_step"]
+
                 try:
                     current_question = await get_question(db, advisor_id, current_step)
-                    
+
                     if not current_question:
+                        twiml_response.message("No questions found for the selected advisor.")
+                        session_manager.clear_session(from_number)
                         logger.warning(f"No question found for step {current_step}")
-                        twiml_response.message("No questions found.")
                         return Response(content=str(twiml_response), media_type="application/xml")
 
+                    # ==== ✅ Predefined Answer Question ====
                     if current_question.is_predefined_answer:
                         if incoming_msg == current_question.triggerKeyword.lower():
                             next_step = current_step + 1
                             next_question = await get_question(db, advisor_id, next_step)
-                            session_manager.set_session(from_number, {**user_data, "current_step": next_step})
-                            twiml_response.message(body=next_question.question if next_question else "Thank you! You've completed all questions.")
-                            logger.info(f"Advanced to step {next_step} for {from_number}")
-                            if not next_question:
+
+                            if next_question:
+                                session_manager.set_session(from_number, {**user_data, "current_step": next_step})
+                                twiml_response.message(body=next_question.question)
+                                logger.info(f"Moved to step {next_step} for {from_number}")
+                            else:
+                                final_msg()
                                 session_manager.clear_session(from_number)
                                 logger.info(f"Session completed for {from_number}")
                         else:
                             twiml_response.message(f"Please respond with '{current_question.triggerKeyword}'.")
-                            logger.warning(f"Invalid response '{incoming_msg}' for predefined question from {from_number}")
+                            logger.warning(f"Invalid trigger keyword from {from_number}: {incoming_msg}")
+
+                    # ==== ✅ Open-ended Question ====
                     else:
                         try:
-                            new_reply = UserReply(user_id=user_data["id"], question_id=current_question.id, reply=incoming_msg)
+                            new_reply = UserReply(
+                                user_id=user_data["id"],
+                                question_id=current_question.id,
+                                reply=incoming_msg
+                            )
                             db.add(new_reply)
-                            await db.commit()
-                            logger.info(f"Stored reply for question ID: {current_question.id} from {from_number}")
-                            
+                            db.commit()
+                            logger.info(f"Stored reply from {from_number} for question {current_question.id}")
+
                             next_step = current_step + 1
                             next_question = await get_question(db, advisor_id, next_step)
-                            session_manager.set_session(from_number, {**user_data, "current_step": next_step})
-                            twiml_response.message(body=next_question.question if next_question else "Thank you! You've completed all questions.")
-                            if not next_question:
+
+                            if next_question:
+                                session_manager.set_session(from_number, {**user_data, "current_step": next_step})
+                                twiml_response.message(body=next_question.question)
+                                logger.info(f"Advanced to step {next_step} for {from_number}")
+                            else:
+                                final_msg()
                                 session_manager.clear_session(from_number)
                                 logger.info(f"Session completed for {from_number}")
+                            
                         except Exception as e:
-                            logger.error(f"Error processing reply for {from_number}: {str(e)}")
-                            await db.rollback()
-                            twiml_response.message("An error occurred while processing your reply.")
+                            db.rollback()
+
                 except Exception as e:
-                    logger.error(f"Error processing step {current_step} for {from_number}: {str(e)}")
+                    logger.error(f"Error handling step {current_step} for {from_number}: {str(e)}")
                     twiml_response.message("An error occurred while processing your response.")
+
+            # ==== Invalid Session State ====
             else:
                 twiml_response.message("Invalid session state. Please start again.")
+                session_manager.clear_session(from_number)
                 logger.warning(f"Invalid session state for {from_number}")
-        
+
         return Response(content=str(twiml_response), media_type="application/xml")
+
     except Exception as e:
-        logger.error(f"Unexpected error in webhook handler: {str(e)}")
+        logger.error(f"Unexpected error in webhook: {str(e)}")
         twiml_response.message("An unexpected error occurred.")
         return Response(content=str(twiml_response), media_type="application/xml")
 
@@ -171,6 +212,7 @@ async def get_question(db: AsyncSession, advisor_id: int, step: int) -> Optional
 async def send_message(db: AsyncSession, content_sid: str, advisor_id: int, user_ids: Optional[List[int]] = None) -> List[str]:
     logger.info(f"Sending message to users for advisor_id: {advisor_id}")
     message_sids = []
+    logger.info(f"list of user id from request:{user_ids}")
     
     try:
         users_query = select(User).where(
@@ -181,6 +223,7 @@ async def send_message(db: AsyncSession, content_sid: str, advisor_id: int, user
         # Use synchronous execution as in your original code
         result = db.execute(users_query)  # No await here
         users = result.scalars().all()
+        logger.info(f"List of users to send promotion:{users}")
         
         if not users:
             logger.warning(f"No users found for advisor_id: {advisor_id}")
