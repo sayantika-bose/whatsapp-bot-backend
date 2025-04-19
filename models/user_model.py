@@ -37,11 +37,8 @@ class UserResponse(BaseModel):
         from_attributes = True  # Enable ORM mode
 
 class UserRepliesResponse(BaseModel):
-    id: int
-    user_id: int
-    question_id: int
-    reply: str
-    created_at: datetime
+    question:str
+    reply:str
 
     class Config:
         from_attributes = True  # Enable ORM mode
