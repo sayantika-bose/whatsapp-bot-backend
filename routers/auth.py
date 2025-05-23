@@ -2,6 +2,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from models.financial_advisor_model import FinancialAdvisorResponse
 from services.auth_service import (
     login,
     logout,
@@ -13,8 +14,7 @@ from models.database import get_db
 from models.auth_model import (
     TokenResponse,
     LoginRequest,
-    RefreshRequest,
-    AdvisorResponse
+    RefreshRequest,    
 )
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ async def login_route(
             access_token=tokens["access_token"],
             refresh_token=tokens["refresh_token"],
             token_type=tokens["token_type"],
-            advisor=AdvisorResponse(**advisor_data)
+            advisor=FinancialAdvisorResponse(**advisor_data)
         )
     except HTTPException as e:
         raise e
@@ -69,7 +69,7 @@ async def refresh_route(
         return TokenResponse(
             access_token=new_tokens["access_token"],
             token_type=new_tokens["token_type"],
-            advisor=AdvisorResponse(**advisor_data)
+            advisor=FinancialAdvisorResponse(**advisor_data)
         )
     except HTTPException as e:
         raise e
@@ -82,7 +82,7 @@ async def refresh_route(
 
 @router.post("/logout")
 async def logout_route(
-    current_advisor: AdvisorResponse = Depends(get_current_advisor),
+    current_advisor: FinancialAdvisorResponse = Depends(get_current_advisor),
     token: str = Depends(oauth2_scheme)
 ):
     """Revoke the current access token."""
@@ -98,9 +98,9 @@ async def logout_route(
             detail="Internal server error"
         )
 
-@router.get("/me", response_model=AdvisorResponse)
+@router.get("/me", response_model=FinancialAdvisorResponse)
 async def get_current_user(
-    current_advisor: AdvisorResponse = Depends(get_current_advisor)
+    current_advisor: FinancialAdvisorResponse = Depends(get_current_advisor)
 ):
     """Get current authenticated user details."""
     return current_advisor

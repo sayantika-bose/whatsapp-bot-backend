@@ -2,12 +2,11 @@ import logging
 import os
 import threading
 import time
-from jose import JWTError, jwt
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from models.database import init_db
-from routers import auth, questions, users, webhook, config_router, submit_form
+from routers import auth, financial_advisors, questions, users, webhook, config_router, submit_form
 from services.auth_service import decode_token
 
 from watchdog.observers import Observer
@@ -71,7 +70,7 @@ def start_env_watcher():
 
 
 # FastAPI App Setup
-app = FastAPI(redirect_slashes=False)
+app = FastAPI(redirect_slashes=False, debug=True)
 
 origins = [
     "https://admin.myadvisor.sg",
@@ -88,6 +87,10 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(submit_form.router)
+
+app.include_router(
+    financial_advisors.router,     
+)
 
 app.include_router(
     questions.router,

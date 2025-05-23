@@ -1,6 +1,8 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 
+from models.financial_advisor_model import FinancialAdvisorResponse
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
@@ -8,16 +10,12 @@ class LoginRequest(BaseModel):
 class TokenData(BaseModel):
     email: Optional[str] = None
 
-class AdvisorResponse(BaseModel):
-    id: int
-    name: str
-    email: EmailStr
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
     refresh_token: Optional[str] = None
-    advisor: Optional[AdvisorResponse] = None
+    advisor: Optional[FinancialAdvisorResponse] = None
 
 class RefreshRequest(BaseModel):
     refresh_token: str
