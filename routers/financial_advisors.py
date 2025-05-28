@@ -7,7 +7,7 @@ from services.financial_advisor_service import (
     update_advisor, delete_advisor
 )
 
-router = APIRouter(prefix="/advisors", tags=["Financial Advisors"])
+router = APIRouter()
 
 @router.post("/", response_model=FinancialAdvisorResponse, status_code=status.HTTP_201_CREATED)
 def create(advisor: FinancialAdvisorCreate, db: Session = Depends(get_db)):

@@ -6,7 +6,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from models.database import init_db
-from routers import auth, financial_advisors, questions, users, webhook, config_router, submit_form
+from routers import auth, financial_advisors, investor_profiles, questions, quiz_answers, quiz_questions, user_answers, user_investor_profile_router, users, webhook, config_router, submit_form
 from services.auth_service import decode_token
 
 from watchdog.observers import Observer
@@ -88,18 +88,59 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(submit_form.router)
 
+
 app.include_router(
-    financial_advisors.router,     
+    user_investor_profile_router.router, 
+    prefix="/user-investor-profile", 
+    tags=["User Investor Profile"],
+    dependencies=[Depends(decode_token)],
+
+)
+
+app.include_router(
+    user_answers.router,
+    prefix="/user-answers", 
+    tags=["User Answers"],
+    dependencies=[Depends(decode_token)],
+)
+
+app.include_router(
+    quiz_answers.router,
+    prefix="/quiz-answers", 
+    tags=["Quiz Answers"],
+    dependencies=[Depends(decode_token)],
+)
+
+app.include_router(
+    investor_profiles.router,
+    prefix="/investor_profiles", 
+    tags=["Investor Profiles"],
+    dependencies=[Depends(decode_token)],
+)
+
+app.include_router(
+    quiz_questions.router, 
+    prefix="/quiz_questions",
+    tags=["Quiz Questions"],
+    dependencies=[Depends(decode_token)],
+)
+
+app.include_router(
+    financial_advisors.router, 
+    prefix="/financial_advisors",
+    tags=["Financial Advisors"],
 )
 
 app.include_router(
     questions.router,
     prefix="/questions",
-    tags=["questions"],
+    tags=["Questions"],
     dependencies=[Depends(decode_token)]
 )
 app.include_router(
     users.router,
+    prefix="/users",
+    tags=["Users"],
     dependencies=[Depends(decode_token)]
 )
 app.include_router(

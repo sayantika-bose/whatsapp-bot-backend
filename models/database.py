@@ -1,16 +1,34 @@
 import logging
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, create_engine, DateTime
+from enum import Enum 
+from sqlalchemy.types import Enum as SqlEnum 
+from sqlalchemy import Column, Float, Integer, String, Boolean, ForeignKey, Text, create_engine, DateTime
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, Mapped, mapped_column
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timezone
+
 
 logger = logging.getLogger(__name__)
 load_dotenv()
 
 Base = declarative_base()
 
+class AnswerLabel(str, Enum):
+    A = "A"
+    B = "B"
+    C = "C"
+    D = "D"
+
+class UserInvestorProfile(Base):
+    __tablename__ = "user_investor_profiles"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    profile_id = Column(Integer, ForeignKey("investor_profiles.id"))
+    percentage = Column(Float)
+    created_at = Column(DateTime, default=datetime.now)
+
+    profile = relationship("InvestorProfile", back_populates="user_profiles")
 
 class QuizQuestion(Base):
     __tablename__ = "quiz_questions"
@@ -25,19 +43,20 @@ class InvestorProfile(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(100), nullable=False, unique=True)
     description = Column(Text)
-    emoji = Column(String(10))
-    ponderation = Column(Integer, default=0)
-
+    emoji = Column(String(10))  
+    ponderation: Mapped[float] = mapped_column(Float, default=1.0)    
+    
     answers = relationship("QuizAnswer", back_populates="profile")
+    user_profiles = relationship("UserInvestorProfile", back_populates="profile")
 
 class QuizAnswer(Base):
     __tablename__ = "quiz_answers"
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    label = Column(String(100))
+    label = Column(SqlEnum(AnswerLabel, name="answer_label_enum", values_callable=lambda x: [e.value for e in x]), nullable=False)    
     text = Column(Text, nullable=False)
     question_id = Column(Integer, ForeignKey("quiz_questions.id"), nullable=False)
     profile_id = Column(Integer, ForeignKey("investor_profiles.id"), nullable=False)
-
+    
     question = relationship("QuizQuestion", back_populates="answers")
     profile = relationship("InvestorProfile", back_populates="answers")
     user_answers = relationship("UserAnswer", back_populates="answer")
@@ -51,6 +70,7 @@ class UserAnswer(Base):
     answer_id = Column(Integer, ForeignKey("quiz_answers.id"), nullable=False)
 
     answer = relationship("QuizAnswer", back_populates="user_answers")
+    question = relationship("QuizQuestion")
 
 # [Model definitions remain the same as before...]
 class DecisionTreeQuestion(Base):

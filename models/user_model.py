@@ -2,6 +2,36 @@ from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 from datetime import datetime
 
+class UserCreate(BaseModel):
+    salutation: Optional[str] = None
+    name: str
+    mobile_number: str
+    email: Optional[EmailStr] = None
+    advisor_id: Optional[int] = None
+    age_group: Optional[str] = None
+
+class UserUpdate(BaseModel):
+    salutation: Optional[str] = None
+    name: Optional[str] = None
+    mobile_number: Optional[str] = None
+    email: Optional[EmailStr] = None
+    advisor_id: Optional[int] = None
+    age_group: Optional[str] = None
+
+class UserResponse(BaseModel):
+    id: int
+    salutation: Optional[str]
+    name: str
+    mobile_number: str
+    email: Optional[EmailStr]
+    advisor_id: Optional[int]
+    age_group: Optional[str]
+    created_at: datetime
+
+    model_config = {
+        "from_attributes": True
+    }
+
 class SubmitFormRequest(BaseModel):
     salutation: Optional[str] = ""
     first_name: Optional[str]
@@ -22,19 +52,6 @@ class SubmitFormResponse(BaseModel):
     message_sid: str
     message: str
     timestamp: str
-
-class UserResponse(BaseModel):
-    id: int
-    salutation: str | None
-    name: str
-    mobile_number: str
-    email: str | None
-    advisor_id: int | None
-    age_group: str | None
-    created_at: datetime
-
-    class Config:
-        from_attributes = True  # Enable ORM mode
 
 class UserRepliesResponse(BaseModel):
     question:str

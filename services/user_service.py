@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from models.database import User, UserReply, DecisionTreeQuestion
 import requests
@@ -5,8 +6,9 @@ from twilio.rest import Client
 import os
 import json
 import logging
-from datetime import datetime, timezone  # Added for timestamp
-from services.session_manager import session_manager  # Import session manager
+from datetime import datetime, timezone  
+from models.user_model import UserCreate, UserResponse
+from services.session_manager import session_manager 
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -22,6 +24,18 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize Twilio client: {str(e)}")
     client = None  # Fallback, though you might want to handle this differently
+    
+def create_user(db: Session, user_data: UserCreate) -> UserResponse:
+    if db.query(User).filter(User.mobile_number == user_data.mobile_number).first():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mobile number already registered.")
+    if user_data.email and db.query(User).filter(User.email == user_data.email).first():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered.")
+
+    user = User(**user_data.model_dump())
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return UserResponse.model_validate(user)
 
 def verify_recaptcha(token: str) -> bool:
     """
