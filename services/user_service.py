@@ -1,14 +1,16 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+
 from models.database import User, UserReply, DecisionTreeQuestion
 import requests
 from twilio.rest import Client
 import os
 import json
 import logging
-from datetime import datetime, timezone  
+from datetime import datetime, timezone  # Added for timestamp
+
 from models.user_model import UserCreate, UserResponse
-from services.session_manager import session_manager 
+from services.session_manager import session_manager  # Import session manager
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -24,18 +26,6 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize Twilio client: {str(e)}")
     client = None  # Fallback, though you might want to handle this differently
-    
-def create_user(db: Session, user_data: UserCreate) -> UserResponse:
-    if db.query(User).filter(User.mobile_number == user_data.mobile_number).first():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mobile number already registered.")
-    if user_data.email and db.query(User).filter(User.email == user_data.email).first():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered.")
-
-    user = User(**user_data.model_dump())
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return UserResponse.model_validate(user)
 
 def verify_recaptcha(token: str) -> bool:
     """
@@ -63,6 +53,18 @@ def verify_recaptcha(token: str) -> bool:
         logger.error(f"Unexpected error in reCAPTCHA verification: {str(e)}")
         return False
 
+def create_user(db: Session, user_data: UserCreate) -> UserResponse:
+    if db.query(User).filter(User.mobile_number == user_data.mobile_number).first():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mobile number already registered.")
+    if user_data.email and db.query(User).filter(User.email == user_data.email).first():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered.")
+
+    user = User(**user_data.model_dump())
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return UserResponse.model_validate(user)
+
 def submit_form(db: Session, data: dict):
     """
     Submit user form, create user if new with a timestamp, send WhatsApp message, and update session.
@@ -71,9 +73,9 @@ def submit_form(db: Session, data: dict):
     try:
         logger.info("Processing form submission")
         # Verify reCAPTCHA
-        # if not verify_recaptcha(data["recaptcha_token"]):
-        #     logger.warning("Invalid reCAPTCHA token provided")
-            # return None, "Invalid reCAPTCHA"
+        if not verify_recaptcha(data["recaptcha_token"]):
+            logger.warning("Invalid reCAPTCHA token provided")
+            return None, "Invalid reCAPTCHA"
 
         # Check for existing user
         logger.info(f"Checking for existing user with mobile: {data['mobile_number']}")
@@ -100,7 +102,7 @@ def submit_form(db: Session, data: dict):
         current_time = datetime.now(timezone.utc)  # UTC timestamp
         new_user = User(
             salutation=data["salutation"],
-            name=f"{data['first_name']} {data['last_name']}".strip(),
+            name=f"{data['salutation']} {data['first_name']} {data['last_name']}",
             mobile_number=data["mobile_number"],
             email=data["email"],
             advisor_id=data["advisor_id"],
@@ -111,52 +113,43 @@ def submit_form(db: Session, data: dict):
         db.commit()
         db.refresh(new_user)
         logger.info(f"New user created with ID: {new_user.id} at {current_time.isoformat()}")
-        
-        return {
-            "id": new_user.id,
-            "mobile_number": new_user.mobile_number,
-            "name": new_user.name,
-            "email": new_user.email,
-            "advisor_id": new_user.advisor_id,
-            "created_at": new_user.created_at.isoformat()
-        }, None
 
         # Update user session with timestamp
-        # session_manager.set_session(data["mobile_number"], {
-        #     "name": new_user.name,
-        #     "mobile_number": new_user.mobile_number,
-        #     "email": new_user.email,
-        #     "advisor_id": new_user.advisor_id,
-        #     "id": new_user.id,
-        #     "current_step": None,
-        #     "created_at": new_user.created_at.isoformat()  # Include timestamp in session
-        # })
+        session_manager.set_session(data["mobile_number"], {
+            "name": new_user.name,
+            "mobile_number": new_user.mobile_number,
+            "email": new_user.email,
+            "advisor_id": new_user.advisor_id,
+            "id": new_user.id,
+            "current_step": None,
+            "created_at": new_user.created_at.isoformat()  # Include timestamp in session
+        })
 
         # Send WhatsApp message
-        # if not client:
-        #     logger.error("Twilio client not initialized, skipping WhatsApp message")
-        #     return {"message": "User created, but message not sent", "created_at": new_user.created_at.isoformat()}, None
+        if not client:
+            logger.error("Twilio client not initialized, skipping WhatsApp message")
+            return {"message": "User created, but message not sent", "created_at": new_user.created_at.isoformat()}, None
 
-        # content_sid = os.getenv("FIRST_CONTENT_SID")
-        # from_number = os.getenv("TWILIO_PHONE_NUMBER")
-        # if not content_sid or not from_number:
-        #     logger.error("Twilio configuration missing: content_sid or from_number not set")
-        #     return {"message": "User created, but message not sent", "created_at": new_user.created_at.isoformat()}, None
+        content_sid = os.getenv("FIRST_CONTENT_SID")
+        from_number = os.getenv("TWILIO_PHONE_NUMBER")
+        if not content_sid or not from_number:
+            logger.error("Twilio configuration missing: content_sid or from_number not set")
+            return {"message": "User created, but message not sent", "created_at": new_user.created_at.isoformat()}, None
 
-        # logger.info(f"Sending WhatsApp message to: {data['mobile_number']}")
-        # message = client.messages.create(
-        #     content_sid=content_sid,
-        #     from_=f"whatsapp:{from_number}",
-        #     content_variables=json.dumps({"1": f"{data['salutation']} {data['first_name']}"}),
-        #     to=f"whatsapp:{data['mobile_number']}",
-        # )
-        # logger.info(f"WhatsApp message sent with SID: {message.sid}")
-        # return {
-        #     "success": True,
-        #     "message_sid": message.sid,
-        #     "message": "Thanks for filling out the form...",
-        #     "timestamp": new_user.created_at.isoformat()  # Include timestamp in response
-        # }, None
+        logger.info(f"Sending WhatsApp message to: {data['mobile_number']}")
+        message = client.messages.create(
+            content_sid=content_sid,
+            from_=f"whatsapp:{from_number}",
+            content_variables=json.dumps({"1": f"{data['salutation']} {data['first_name']}"}),
+            to=f"whatsapp:{data['mobile_number']}",
+        )
+        logger.info(f"WhatsApp message sent with SID: {message.sid}")
+        return {
+            "success": True,
+            "message_sid": message.sid,
+            "message": "Thanks for filling out the form...",
+            "timestamp": new_user.created_at.isoformat()  # Include timestamp in response
+        }, None
 
     except KeyError as e:
         logger.error(f"Missing required field in form data: {str(e)}")
@@ -190,11 +183,11 @@ def get_user_replies(db: Session, advisor_id: int, user_id: int):
             DecisionTreeQuestion.advisor_id == advisor_id
         ).all()
         replies_dict = {reply.question_id: reply.reply for reply in replies}
-        
+
         questions = db.query(DecisionTreeQuestion).filter_by(advisor_id=advisor_id).all()
-        result = [{"question": q.question, "reply": replies_dict[q.id]} 
-                 for q in questions if q.id in replies_dict]
-        
+        result = [{"question": q.question, "reply": replies_dict[q.id]}
+                  for q in questions if q.id in replies_dict]
+
         logger.info(f"Found {len(result)} replies for user_id: {user_id}")
         return result
     except Exception as e:

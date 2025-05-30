@@ -70,7 +70,7 @@ def start_env_watcher():
 
 
 # FastAPI App Setup
-app = FastAPI(redirect_slashes=False, debug=True)
+app = FastAPI(redirect_slashes=False)
 
 origins = [
     "https://admin.myadvisor.sg",

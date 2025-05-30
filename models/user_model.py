@@ -33,19 +33,19 @@ class UserResponse(BaseModel):
     }
 
 class SubmitFormRequest(BaseModel):
-    salutation: Optional[str] = ""
-    first_name: Optional[str]
-    last_name: Optional[str] = ""
-    email: Optional[EmailStr] = ""
+    salutation: str
+    first_name: str
+    last_name: str
+    email: EmailStr
     mobile_number: str
-    age_group: Optional[str] = ""
-    advisor_id: int # Is it NOT NULL in DB 
-    recaptcha_token: Optional[str] = ""
-    message: Optional[str] = ""  # Make the message field optional
+    age_group: str
+    advisor_id: int
+    recaptcha_token: str
+    message: Optional[str] = None  # Make the message field optional
 
     @property
     def name(self):
-        return f"{self.first_name} {self.last_name}"
+        return f"{self.salutation} {self.first_name} {self.last_name}"
 
 class SubmitFormResponse(BaseModel):
     success: bool

@@ -1,12 +1,14 @@
 import logging
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 
 from services.user_service import (
     create_user,
     get_users,
     get_user_replies
+    # delete_user  # ✅ Import delete function
 )
 from services.messaging_service import send_message
 from models.database import get_db

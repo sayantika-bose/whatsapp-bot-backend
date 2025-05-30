@@ -22,6 +22,7 @@ class AnswerLabel(str, Enum):
 
 class UserInvestorProfile(Base):
     __tablename__ = "user_investor_profiles"
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, index=True)
     profile_id = Column(Integer, ForeignKey("investor_profiles.id"))
@@ -32,6 +33,7 @@ class UserInvestorProfile(Base):
 
 class QuizQuestion(Base):
     __tablename__ = "quiz_questions"
+
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     text = Column(Text, nullable=False)
     is_scored = Column(Boolean, default=False)
@@ -40,6 +42,7 @@ class QuizQuestion(Base):
 
 class InvestorProfile(Base):
     __tablename__ = "investor_profiles"
+
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(100), nullable=False, unique=True)
     description = Column(Text)
@@ -51,28 +54,33 @@ class InvestorProfile(Base):
 
 class QuizAnswer(Base):
     __tablename__ = "quiz_answers"
+
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     label = Column(SqlEnum(AnswerLabel, name="answer_label_enum", values_callable=lambda x: [e.value for e in x]), nullable=False)    
     text = Column(Text, nullable=False)
     question_id = Column(Integer, ForeignKey("quiz_questions.id"), nullable=False)
     profile_id = Column(Integer, ForeignKey("investor_profiles.id"), nullable=False)
+
     question = relationship("QuizQuestion", back_populates="answers")
     profile = relationship("InvestorProfile", back_populates="answers")
     user_answers = relationship("UserAnswer", back_populates="answer")
 
 class UserAnswer(Base):
     __tablename__ = "user_answers"
+
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     answered_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     question_id = Column(Integer, ForeignKey("quiz_questions.id"), nullable=False)
     answer_id = Column(Integer, ForeignKey("quiz_answers.id"), nullable=False)
+
     answer = relationship("QuizAnswer", back_populates="user_answers")
     question = relationship("QuizQuestion")
 
 # [Model definitions remain the same as before...]
 class DecisionTreeQuestion(Base):
     __tablename__ = "decision_tree_questions"
+
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     advisor_id = Column(Integer, ForeignKey("financial_advisors.id"))
     question = Column(String(10000), nullable=False)
@@ -83,6 +91,7 @@ class DecisionTreeQuestion(Base):
 
 class User(Base):
     __tablename__ = "users"
+
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     salutation = Column(String(10))
     name = Column(String(100), nullable=False)
@@ -94,6 +103,7 @@ class User(Base):
 
 class FinancialAdvisor(Base):
     __tablename__ = "financial_advisors"
+
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(100), nullable=False)
     mobile_number = Column(String(20), unique=True)
@@ -102,6 +112,7 @@ class FinancialAdvisor(Base):
 
 class UserReply(Base):
     __tablename__ = "user_replies"
+
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     question_id = Column(Integer, ForeignKey("decision_tree_questions.id"))
