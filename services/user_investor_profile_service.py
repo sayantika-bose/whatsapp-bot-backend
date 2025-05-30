@@ -1,4 +1,3 @@
-from typing import List
 from sqlalchemy.orm import Session
 from models.database import InvestorProfile, UserAnswer, QuizAnswer, UserInvestorProfile
 from collections import defaultdict
@@ -42,7 +41,7 @@ def calculate_and_save_user_profile(db: Session, user_id: int) -> list[UserInves
     db.commit()
     return results
 
-def get_user_investor_profiles(db: Session, user_id: int) -> List[UserInvestorProfile]:
+def get_user_investor_profiles(db: Session, user_id: int) -> list[UserInvestorProfile]:
     profiles = (
         db.query(UserInvestorProfile)
         .filter_by(user_id=user_id)

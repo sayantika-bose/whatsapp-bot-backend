@@ -56,7 +56,6 @@ class QuizAnswer(Base):
     text = Column(Text, nullable=False)
     question_id = Column(Integer, ForeignKey("quiz_questions.id"), nullable=False)
     profile_id = Column(Integer, ForeignKey("investor_profiles.id"), nullable=False)
-    
     question = relationship("QuizQuestion", back_populates="answers")
     profile = relationship("InvestorProfile", back_populates="answers")
     user_answers = relationship("UserAnswer", back_populates="answer")
@@ -68,7 +67,6 @@ class UserAnswer(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     question_id = Column(Integer, ForeignKey("quiz_questions.id"), nullable=False)
     answer_id = Column(Integer, ForeignKey("quiz_answers.id"), nullable=False)
-
     answer = relationship("QuizAnswer", back_populates="user_answers")
     question = relationship("QuizQuestion")
 
