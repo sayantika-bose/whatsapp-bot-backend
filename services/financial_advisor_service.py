@@ -1,6 +1,7 @@
 import logging
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
+
 from models.database import FinancialAdvisor
 from models.financial_advisor_model import FinancialAdvisorCreate, FinancialAdvisorResponse, FinancialAdvisorUpdate
 from services.auth_service import hash_password
@@ -19,7 +20,7 @@ def create_advisor(db: Session, advisor_data: FinancialAdvisorCreate) -> Financi
     hashed_password = hash_password(advisor_data.password)
     advisor = FinancialAdvisor(
         name=advisor_data.name,
-        email=advisor_data.email,
+        email=str(advisor_data.email),
         password=hashed_password
     )
     db.add(advisor)
@@ -31,7 +32,7 @@ def create_advisor(db: Session, advisor_data: FinancialAdvisorCreate) -> Financi
 def get_all_advisors(db: Session):
     return db.query(FinancialAdvisor).all()
 
-def get_advisor_by_id(db: Session, advisor_id: int) -> FinancialAdvisor:
+def get_advisor_by_id(db: Session, advisor_id: int) -> type[FinancialAdvisor]:
     advisor = db.query(FinancialAdvisor).filter_by(id=advisor_id).first()
     if not advisor:
         raise HTTPException(status_code=404, detail="Advisor not found")

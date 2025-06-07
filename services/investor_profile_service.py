@@ -17,7 +17,7 @@ def create_profile(db: Session, profile_data: InvestorProfileCreate) -> Investor
 def get_all_profiles(db: Session):
     return db.query(InvestorProfile).all()
 
-def get_profile_by_id(db: Session, profile_id: int) -> InvestorProfile:
+def get_profile_by_id(db: Session, profile_id: int) -> type[InvestorProfile]:
     profile = db.query(InvestorProfile).filter_by(id=profile_id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Investor profile not found")

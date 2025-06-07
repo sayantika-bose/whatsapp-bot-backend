@@ -13,7 +13,7 @@ def create_question(db: Session, question_data: QuizQuestionCreate) -> QuizQuest
 def get_all_questions(db: Session):
     return db.query(QuizQuestion).all()
 
-def get_question_by_id(db: Session, question_id: int) -> QuizQuestion:
+def get_question_by_id(db: Session, question_id: int) -> type[QuizQuestion]:
     question = db.query(QuizQuestion).filter_by(id=question_id).first()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")

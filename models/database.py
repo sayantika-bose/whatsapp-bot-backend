@@ -1,6 +1,5 @@
 import logging
-from enum import Enum 
-from sqlalchemy.types import Enum as SqlEnum 
+from sqlalchemy.types import Enum as SqlEnum
 from sqlalchemy import Column, Float, Integer, String, Boolean, ForeignKey, Text, create_engine, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, Mapped, mapped_column
@@ -8,17 +7,12 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime, timezone
 
+from models.enums import AnswerLabel
 
 logger = logging.getLogger(__name__)
 load_dotenv()
 
 Base = declarative_base()
-
-class AnswerLabel(str, Enum):
-    A = "A"
-    B = "B"
-    C = "C"
-    D = "D"
 
 class QuizSession(Base):
     __tablename__ = "quiz_sessions"
@@ -45,7 +39,7 @@ class QuizQuestion(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     text = Column(Text, nullable=False)
-    is_scored = Column(Boolean, default=False)
+    is_scored = Column(Boolean, default=True)
 
     answers = relationship("QuizAnswer", back_populates="question")
 
@@ -54,9 +48,9 @@ class InvestorProfile(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(100), nullable=False, unique=True)
-    description = Column(Text)
-    emoji = Column(String(10))  
-    ponderation: Mapped[float] = mapped_column(Float, default=1.0)    
+    description = Column(Text, nullable=False)
+    emoji = Column(String(10))
+    ponderation: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
     
     answers = relationship("QuizAnswer", back_populates="profile")
     user_profiles = relationship("UserInvestorProfile", back_populates="profile")
@@ -65,7 +59,7 @@ class QuizAnswer(Base):
     __tablename__ = "quiz_answers"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    label = Column(SqlEnum(AnswerLabel, name="answer_label_enum", values_callable=lambda x: [e.value for e in x]), nullable=False)    
+    label = Column(SqlEnum(AnswerLabel, name="answer_label_enum", values_callable=lambda x: [e.value for e in x]), nullable=False)
     text = Column(Text, nullable=False)
     question_id = Column(Integer, ForeignKey("quiz_questions.id"), nullable=False)
     profile_id = Column(Integer, ForeignKey("investor_profiles.id"), nullable=False)
