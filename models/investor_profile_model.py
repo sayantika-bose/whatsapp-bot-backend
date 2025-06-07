@@ -16,6 +16,7 @@ class InvestorProfileUpdate(BaseModel):
 class InvestorProfileResponse(BaseModel):
     id: int
     name: str
+    slug: str
     description: str
     emoji: Optional[str]
     ponderation: float

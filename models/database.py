@@ -48,6 +48,7 @@ class InvestorProfile(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(100), nullable=False, unique=True)
+    slug = Column(String(120), nullable=False, unique=True, index=True)
     description = Column(Text, nullable=False)
     emoji = Column(String(10))
     ponderation: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
