@@ -13,7 +13,17 @@ router = APIRouter()
 
 @router.post("/", response_model=List[UserInvestorProfileResponse])
 def get_investor_profile(data: CompleteQuizFlowRequest, db: Session = Depends(get_db)):
-    # Transform answers into expected type
+    """
+    Final step of the gamified quiz flow.
+
+    This endpoint is called when a prospect completes the quiz and submits their personal information.
+    It performs the following actions:
+
+    1. Stores the user's quiz answers associated with the quiz session.
+    2. Registers the user in the database using the submitted information.
+    3. Calculates the user's investor profile based on their answers.
+    4. Returns the calculated investor profile(s) assigned to the user.
+    """
     transformed_answers = [
         UserAnswerCreate(question_id=a.question_id, answer_id=a.answer_id)
         for a in data.answers
