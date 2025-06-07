@@ -7,7 +7,7 @@ class UserCreate(BaseModel):
     name: str
     mobile_number: str
     email: Optional[EmailStr] = None
-    advisor_id: Optional[int] = None
+    advisor_id: Optional[int] = 1
     age_group: Optional[str] = None
     session_id: Optional[int] = None
 
