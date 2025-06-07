@@ -1,5 +1,7 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
+
+from models.quiz_answer_model import QuizAnswerResponse
 
 class QuizQuestionCreate(BaseModel):
     text: str
@@ -13,6 +15,7 @@ class QuizQuestionResponse(BaseModel):
     id: int
     text: str
     is_scored: bool
+    answers: List[QuizAnswerResponse]
 
     model_config = {
         "from_attributes": True

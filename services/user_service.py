@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from models.database import User, UserReply, DecisionTreeQuestion
+from models.database import User, UserReply, DecisionTreeQuestion, UserAnswer
 import requests
 from twilio.rest import Client
 import os
@@ -54,15 +54,33 @@ def verify_recaptcha(token: str) -> bool:
         return False
 
 def create_user(db: Session, user_data: UserCreate) -> UserResponse:
+    # Check for uniqueness
     if db.query(User).filter(User.mobile_number == user_data.mobile_number).first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mobile number already registered.")
     if user_data.email and db.query(User).filter(User.email == user_data.email).first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered.")
 
-    user = User(**user_data.model_dump())
+    # Create user
+    user = User(
+        name=user_data.name,
+        mobile_number=user_data.mobile_number,
+        email=user_data.email,
+        salutation=user_data.salutation,
+        age_group=user_data.age_group,
+        created_at=datetime.now(timezone.utc)
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # Link answers to the user if session_id is provided
+    if user_data.session_id:
+        answers = db.query(UserAnswer).filter(UserAnswer.session_id == user_data.session_id).all()
+        for ans in answers:
+            ans.user_id = user.id
+            ans.session_id = None  # Optional cleanup
+        db.commit()
+
     return UserResponse.model_validate(user)
 
 def submit_form(db: Session, data: dict):

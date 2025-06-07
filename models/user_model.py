@@ -9,6 +9,7 @@ class UserCreate(BaseModel):
     email: Optional[EmailStr] = None
     advisor_id: Optional[int] = None
     age_group: Optional[str] = None
+    session_id: Optional[int] = None
 
 class UserUpdate(BaseModel):
     salutation: Optional[str] = None

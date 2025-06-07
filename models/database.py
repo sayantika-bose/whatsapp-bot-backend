@@ -20,6 +20,15 @@ class AnswerLabel(str, Enum):
     C = "C"
     D = "D"
 
+class QuizSession(Base):
+    __tablename__ = "quiz_sessions"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    session_token = Column(String(64), unique=True, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    answers = relationship("UserAnswer", back_populates="session")
+
 class UserInvestorProfile(Base):
     __tablename__ = "user_investor_profiles"
 
@@ -70,10 +79,12 @@ class UserAnswer(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     answered_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    session_id = Column(Integer, ForeignKey("quiz_sessions.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     question_id = Column(Integer, ForeignKey("quiz_questions.id"), nullable=False)
     answer_id = Column(Integer, ForeignKey("quiz_answers.id"), nullable=False)
 
+    session = relationship("QuizSession", back_populates="answers")
     answer = relationship("QuizAnswer", back_populates="user_answers")
     question = relationship("QuizQuestion")
 
