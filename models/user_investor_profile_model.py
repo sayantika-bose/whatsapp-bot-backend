@@ -24,6 +24,9 @@ class CompleteQuizFlowRequest(BaseModel):
 class InvestorProfileBase(BaseModel):
     id: int
     name: str
+    description: str
+    emoji: Optional[str]
+    ponderation: float
 
     model_config = {
         "from_attributes": True

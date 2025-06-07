@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from models.database import InvestorProfile, UserAnswer, QuizAnswer, UserInvestorProfile
 from collections import defaultdict
 
@@ -39,6 +39,14 @@ def calculate_and_save_user_profile(db: Session, user_id: int) -> list[UserInves
         results.append(new_profile)
 
     db.commit()
+
+    results = (
+        db.query(UserInvestorProfile)
+        .options(joinedload(UserInvestorProfile.profile))
+        .filter_by(user_id=user_id)
+        .all()
+    )
+
     return results
 
 def get_user_investor_profiles(db: Session, user_id: int) -> list[UserInvestorProfile]:
