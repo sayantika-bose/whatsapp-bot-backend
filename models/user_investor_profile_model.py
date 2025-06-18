@@ -1,25 +1,7 @@
-from typing import Optional, List
+from typing import Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from datetime import datetime
-
-
-class AnswerInput(BaseModel):
-    question_id: int
-    answer_id: int
-
-class UserInput(BaseModel):
-    name: str
-    mobile_number: str
-    advisor_id: Optional[int] = None
-    email: Optional[EmailStr] = None
-    salutation: Optional[str] = None
-    age_group: Optional[str] = None
-
-class CompleteQuizFlowRequest(BaseModel):
-    session_id: int
-    answers: List[AnswerInput]
-    user: UserInput
 
 class InvestorProfileBase(BaseModel):
     id: int

@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -9,8 +11,12 @@ import json
 import logging
 from datetime import datetime, timezone  # Added for timestamp
 
-from models.user_model import UserCreate, UserResponse
+from models.user_answer_model import UserAnswerCreate, BulkUserAnswerCreate
+from models.user_investor_profile_model import UserInvestorProfileResponse
+from models.user_model import UserResponse, SubmitFormRequest, UserCreate
 from services.session_manager import session_manager  # Import session manager
+from services.user_answer_service import create_bulk_user_answers_service
+from services.user_investor_profile_service import calculate_and_save_user_profile
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -62,7 +68,7 @@ def create_user(db: Session, user_data: UserCreate) -> UserResponse:
 
     # Create user
     user = User(
-        name=user_data.name,
+        name=f"{user_data.salutation} {user_data.first_name} {user_data.last_name}",
         mobile_number=user_data.mobile_number,
         email=user_data.email,
         salutation=user_data.salutation,
@@ -72,6 +78,7 @@ def create_user(db: Session, user_data: UserCreate) -> UserResponse:
     db.add(user)
     db.commit()
     db.refresh(user)
+    logger.info(f"New user created with ID: {user.id} at {datetime.now(timezone.utc)}")
 
     # Link answers to the user if session_id is provided
     if user_data.session_id:
@@ -81,101 +88,51 @@ def create_user(db: Session, user_data: UserCreate) -> UserResponse:
             ans.session_id = None  # Optional cleanup
         db.commit()
 
-    return UserResponse.model_validate(user)
+    return user
 
-def submit_form(db: Session, data: dict):
-    """
-    Submit user form, create user if new with a timestamp, send WhatsApp message, and update session.
-    Returns tuple (success_response, error_message).
-    """
-    try:
-        logger.info("Processing form submission")
-        # Verify reCAPTCHA
-        if not verify_recaptcha(data["recaptcha_token"]):
-            logger.warning("Invalid reCAPTCHA token provided")
-            return None, "Invalid reCAPTCHA"
+def process_quiz_flow(db: Session, data: SubmitFormRequest) -> List[UserInvestorProfileResponse]:
+    transformed_answers = [
+        UserAnswerCreate(question_id=a.question_id, answer_id=a.answer_id)
+        for a in data.answers
+    ]
 
-        # Check for existing user
-        logger.info(f"Checking for existing user with mobile: {data['mobile_number']}")
-        existing_user = db.query(User).filter(
-            User.mobile_number == data["mobile_number"],
-            User.advisor_id == data["advisor_id"]
-        ).first()
+    user_answers_payload = BulkUserAnswerCreate(
+        session_id=data.session_id,
+        answers=transformed_answers,
+        user_id=None
+    )
+    create_bulk_user_answers_service(db, user_answers_payload)
 
-        if existing_user:
-            logger.info(f"User already exists: {existing_user.mobile_number}")
-            session_manager.set_session(data["mobile_number"], {
-                "name": existing_user.name,
-                "mobile_number": existing_user.mobile_number,
-                "email": existing_user.email,
-                "advisor_id": existing_user.advisor_id,
-                "id": existing_user.id,
-                "current_step": None,
-                "created_at": existing_user.created_at.isoformat() if existing_user.created_at else None  # Include timestamp if available
-            })
-            return None, "User already exists"
+    user_data = UserCreate(**data.user.model_dump(
+        exclude={"is_quiz", "answers"}),
+        session_id=data.session_id,
+    )
+    user = create_user(db, user_data)
 
-        # Create new user with timestamp
-        logger.info("Creating new user")
-        current_time = datetime.now(timezone.utc)  # UTC timestamp
-        new_user = User(
-            salutation=data["salutation"],
-            name=f"{data['salutation']} {data['first_name']} {data['last_name']}",
-            mobile_number=data["mobile_number"],
-            email=data["email"],
-            advisor_id=data["advisor_id"],
-            age_group=data["age_group"],
-            created_at=current_time  # Add timestamp here
-        )
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-        logger.info(f"New user created with ID: {new_user.id} at {current_time.isoformat()}")
+    user_investors_profiles: list[UserInvestorProfileResponse] = calculate_and_save_user_profile(db, user.id)
 
-        # Update user session with timestamp
-        session_manager.set_session(data["mobile_number"], {
-            "name": new_user.name,
-            "mobile_number": new_user.mobile_number,
-            "email": new_user.email,
-            "advisor_id": new_user.advisor_id,
-            "id": new_user.id,
-            "current_step": None,
-            "created_at": new_user.created_at.isoformat()  # Include timestamp in session
-        })
+    return user_investors_profiles
 
-        # Send WhatsApp message
-        if not client:
-            logger.error("Twilio client not initialized, skipping WhatsApp message")
-            return {"message": "User created, but message not sent", "created_at": new_user.created_at.isoformat()}, None
+def send_whatsapp_message(data: SubmitFormRequest):
+    if not client:
+        logger.error("Twilio client not initialized, skipping WhatsApp message")
+        return None
 
-        content_sid = os.getenv("FIRST_CONTENT_SID")
-        from_number = os.getenv("TWILIO_PHONE_NUMBER")
-        if not content_sid or not from_number:
-            logger.error("Twilio configuration missing: content_sid or from_number not set")
-            return {"message": "User created, but message not sent", "created_at": new_user.created_at.isoformat()}, None
+    content_sid = os.getenv("FIRST_CONTENT_SID")
+    from_number = os.getenv("TWILIO_PHONE_NUMBER")
+    if not content_sid or not from_number:
+        logger.error("Twilio configuration missing: content_sid or from_number not set")
+        return None
 
-        logger.info(f"Sending WhatsApp message to: {data['mobile_number']}")
-        message = client.messages.create(
-            content_sid=content_sid,
-            from_=f"whatsapp:{from_number}",
-            content_variables=json.dumps({"1": f"{data['salutation']} {data['first_name']}"}),
-            to=f"whatsapp:{data['mobile_number']}",
-        )
-        logger.info(f"WhatsApp message sent with SID: {message.sid}")
-        return {
-            "success": True,
-            "message_sid": message.sid,
-            "message": "Thanks for filling out the form...",
-            "timestamp": new_user.created_at.isoformat()  # Include timestamp in response
-        }, None
-
-    except KeyError as e:
-        logger.error(f"Missing required field in form data: {str(e)}")
-        return None, f"Missing required field: {str(e)}"
-    except Exception as e:
-        logger.error(f"Error processing form submission: {str(e)}")
-        db.rollback()  # Roll back on error to avoid partial commits
-        return None, "Internal server error"
+    logger.info(f"Sending WhatsApp message to: {data.mobile_number}")
+    message = client.messages.create(
+        content_sid=content_sid,
+        from_=f"whatsapp:{from_number}",
+        content_variables=json.dumps({"1": f"{data.salutation} {data.first_name}"}),
+        to=f"whatsapp:{data.mobile_number}",
+    )
+    logger.info(f"WhatsApp message sent with SID: {message.sid}")
+    return message.sid
 
 def get_users(db: Session, advisor_id: int):
     """
