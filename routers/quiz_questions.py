@@ -9,7 +9,6 @@ from services.quiz_question_service import (
 
 router = APIRouter()
 
-# TODO YNA: create the four answers with the question creation
 @router.post("/", response_model=QuizQuestionResponse, status_code=status.HTTP_201_CREATED)
 def create(question: QuizQuestionCreate, db: Session = Depends(get_db)):
     return create_question(db, question)

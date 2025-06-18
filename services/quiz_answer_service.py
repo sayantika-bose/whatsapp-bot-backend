@@ -66,7 +66,16 @@ def update_answer(db: Session, answer_id: int, update_data: QuizAnswerUpdate) ->
     db.refresh(answer)
     return QuizAnswerResponse.model_validate(answer)
 
-def delete_answer(db: Session, answer_id: int):
-    answer = get_answer_by_id(db, answer_id)
-    db.delete(answer)
+def delete_answers_by_question_id(db: Session, question_id: int):
+    answers = db.query(QuizAnswer).filter(QuizAnswer.question_id == question_id).all()
+
+    if not answers:
+        raise HTTPException(
+            status_code=404,
+            detail="No answers found for this question."
+        )
+
+    for answer in answers:
+        db.delete(answer)
+
     db.commit()

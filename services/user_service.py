@@ -68,6 +68,7 @@ def create_user(db: Session, user_data: UserCreate) -> UserResponse:
 
     # Create user
     user = User(
+        advisor_id=user_data.advisor_id,
         name=f"{user_data.salutation} {user_data.first_name} {user_data.last_name}",
         mobile_number=user_data.mobile_number,
         email=user_data.email,

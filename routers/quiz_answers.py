@@ -7,8 +7,8 @@ from models.quiz_answer_model import (
     QuizAnswerUpdate, QuizAnswerResponse, QuizAnswerBatchCreate
 )
 from services.quiz_answer_service import (
-    get_answer_by_id, get_answers_by_question_id,
-    update_answer, create_answers
+    get_answers_by_question_id,
+    update_answer, create_answers, delete_answers_by_question_id
 )
 
 router = APIRouter()
@@ -25,10 +25,11 @@ def create(
 def get_answers(question_id: int, db: Session = Depends(get_db)):
     return get_answers_by_question_id(db, question_id)
 
-@router.get("/{answer_id}", response_model=QuizAnswerResponse)
-def get_one(answer_id: int, db: Session = Depends(get_db)):
-    return get_answer_by_id(db, answer_id)
-
 @router.put("/{answer_id}", response_model=QuizAnswerResponse)
 def update(answer_id: int, answer_data: QuizAnswerUpdate, db: Session = Depends(get_db)):
     return update_answer(db, answer_id, answer_data)
+
+@router.delete("/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_answers(question_id: int, db: Session = Depends(get_db)):
+    delete_answers_by_question_id(db, question_id)
+    return {"detail": "All answers for this question have been deleted."}
