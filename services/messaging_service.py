@@ -75,7 +75,7 @@ async def handle_webhook(db: AsyncSession, request: Request) -> Response:
                 final_content_sid = os.getenv('LAST_CONTENT_SID')
                 client.messages.create( content_sid=final_content_sid,
                                         from_=f"whatsapp:{from_number}",
-                                        content_variables=json.dumps({"1": f"{user_data['salutation']} {user_data['first_name']}"}), 
+                                        content_variables=json.dumps({"1": user_data['first_name']}),
                                         to=f"whatsapp:{user_data['mobile_number']}", 
                                         )
 

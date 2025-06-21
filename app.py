@@ -9,7 +9,7 @@ from models.database import init_db
 from routers import (
     auth, financial_advisors, investor_profiles, questions, quiz_answers,
     quiz_questions, user_answers, user_investor_profile, users, webhook,
-    config_router, submit_form
+    config_router, submit_form, article
 )
 from services.auth_service import decode_token
 
@@ -129,6 +129,13 @@ app.include_router(
     prefix="/investor_profiles",
     tags=["Investor Profiles"],
     dependencies=[Depends(validate_secret_salt)]
+)
+
+app.include_router(
+    article.router,
+    prefix="/article",
+    tags=["Articles"],
+    dependencies=[Depends(decode_token)]
 )
 
 app.include_router(

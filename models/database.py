@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime, timezone
 
-from models.enums import AnswerLabel
+from models.enums import AnswerLabel, AgeGroupEnum, GenderEnum
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -99,13 +99,25 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    salutation = Column(String(10))
+    gender = Column(SqlEnum(GenderEnum), nullable=True)
     name = Column(String(100), nullable=False)
     mobile_number = Column(String(20), unique=True, nullable=False)
     email = Column(String(100), unique=True)
     advisor_id = Column(Integer, ForeignKey("financial_advisors.id"))
-    age_group = Column(String(20))
+    age_group = Column(SqlEnum(AgeGroupEnum), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+class Article(Base):
+    __tablename__ = "articles"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    advisor_id = Column(Integer, ForeignKey("financial_advisors.id"), nullable=False)
+    title = Column(String(255), nullable=False)
+    content = Column(Text, nullable=False)
+    image_base64 = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    advisor = relationship("FinancialAdvisor", back_populates="articles")
 
 class FinancialAdvisor(Base):
     __tablename__ = "financial_advisors"
@@ -115,6 +127,8 @@ class FinancialAdvisor(Base):
     mobile_number = Column(String(20), unique=True)
     email = Column(String(100), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
+
+    articles = relationship("Article", back_populates="advisor")
 
 class UserReply(Base):
     __tablename__ = "user_replies"

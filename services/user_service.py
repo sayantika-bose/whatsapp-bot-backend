@@ -69,10 +69,10 @@ def create_user(db: Session, user_data: UserCreate) -> UserResponse:
     # Create user
     user = User(
         advisor_id=user_data.advisor_id,
-        name=f"{user_data.salutation} {user_data.first_name} {user_data.last_name}",
+        name=f"{user_data.first_name} {user_data.last_name}",
         mobile_number=user_data.mobile_number,
         email=user_data.email,
-        salutation=user_data.salutation,
+        gender=user_data.gender,
         age_group=user_data.age_group,
         created_at=datetime.now(timezone.utc)
     )
@@ -129,7 +129,7 @@ def send_whatsapp_message(data: SubmitFormRequest):
     message = client.messages.create(
         content_sid=content_sid,
         from_=f"whatsapp:{from_number}",
-        content_variables=json.dumps({"1": f"{data.salutation} {data.first_name}"}),
+        content_variables=json.dumps({"1": data.first_name}),
         to=f"whatsapp:{data.mobile_number}",
     )
     logger.info(f"WhatsApp message sent with SID: {message.sid}")
