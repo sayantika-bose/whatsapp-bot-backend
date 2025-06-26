@@ -2,17 +2,19 @@ import logging
 import os
 import threading
 import time
-from jose import JWTError, jwt
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from models.database import init_db
-from routers import auth, questions, users, webhook, config_router, submit_form
+from routers import (
+    auth, financial_advisors, investor_profiles, questions, quiz_answers,
+    quiz_questions, user_answers, user_investor_profile, users, webhook,
+    config_router, submit_form, article
+)
 from services.auth_service import decode_token
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-
 
 # Logging setup
 LOG_DIR = "logs"
@@ -32,7 +34,14 @@ logger = logging.getLogger(__name__)
 
 # Load .env
 load_dotenv()
+SECRET_SALT = os.getenv("SECRET_SALT")
 
+def validate_secret_salt(x_api_key: str = Header(...)):
+    if x_api_key != SECRET_SALT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid or missing API Key"
+        )
 
 # Watcher Class
 class DotEnvChangeHandler(FileSystemEventHandler):
@@ -49,7 +58,6 @@ class DotEnvChangeHandler(FileSystemEventHandler):
                     load_dotenv(override=True)
                 except Exception as e:
                     logger.error(f"Failed to reload .env: {e}")
-
 
 def start_env_watcher():
     event_handler = DotEnvChangeHandler()
@@ -68,7 +76,6 @@ def start_env_watcher():
 
     thread = threading.Thread(target=watch, daemon=True)
     thread.start()
-
 
 # FastAPI App Setup
 app = FastAPI(redirect_slashes=False)
@@ -90,18 +97,69 @@ app.include_router(auth.router)
 app.include_router(submit_form.router)
 
 app.include_router(
+    user_answers.router,
+    prefix="/user-answers",
+    tags=["User Answers"],
+    dependencies=[Depends(validate_secret_salt)]
+)
+
+app.include_router(
+    quiz_answers.router,
+    prefix="/quiz-answers",
+    tags=["Quiz Answers"],
+    dependencies=[Depends(validate_secret_salt)]
+)
+
+app.include_router(
+    quiz_questions.router,
+    prefix="/quiz_questions",
+    tags=["Quiz Questions"],
+    dependencies=[Depends(validate_secret_salt)]
+)
+
+app.include_router(
+    user_investor_profile.router,
+    prefix="/user-investor-profile",
+    tags=["User Investor Profile"],
+    dependencies=[Depends(validate_secret_salt)]
+)
+
+app.include_router(
+    investor_profiles.router,
+    prefix="/investor_profiles",
+    tags=["Investor Profiles"],
+    dependencies=[Depends(validate_secret_salt)]
+)
+
+app.include_router(
+    article.router,
+    prefix="/article",
+    tags=["Articles"],
+    dependencies=[Depends(decode_token)]
+)
+
+app.include_router(
+    financial_advisors.router,
+    prefix="/financial_advisors",
+    tags=["Financial Advisors"]
+)
+
+app.include_router(
     questions.router,
     prefix="/questions",
-    tags=["questions"],
+    tags=["Questions"],
     dependencies=[Depends(decode_token)]
 )
+
 app.include_router(
     users.router,
+    prefix="/users",
+    tags=["Users"],
     dependencies=[Depends(decode_token)]
 )
-app.include_router(
-    webhook.router
-)
+
+app.include_router(webhook.router)
+
 app.include_router(
     config_router.router,
     dependencies=[Depends(decode_token)]

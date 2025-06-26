@@ -1,26 +1,31 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 from typing import List
 
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
 from services.user_service import (
+    create_user,
     get_users,
-    get_user_replies,
-    delete_user  # ✅ Import delete function
+    get_user_replies
+    # delete_user  # ✅ Import delete function
 )
 from services.messaging_service import send_message
 from models.database import get_db
 from models.user_model import (
+    UserCreate,
     UserResponse,
-    UserRepliesResponse,
-    DeleteUserRequest,
-    DeleteUserResponse  
+    UserRepliesResponse
 )
 
-logger = logging.getLogger(_name_)
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
-@router.get("/users/{advisor_id}", response_model=List[UserResponse])
+@router.post("/", response_model=UserResponse)
+def create(user_data: UserCreate, db: Session = Depends(get_db)):
+    return create_user(db, user_data)
+
+@router.get("/{advisor_id}", response_model=List[UserResponse])
 def get_users_route(advisor_id: int, db: Session = Depends(get_db)):
     logger.info(f"Get users request for advisor_id: {advisor_id}")
     users = get_users(db, advisor_id)
@@ -38,10 +43,10 @@ async def send_message_route(data: dict, db: Session = Depends(get_db)):
     message_sids = await send_message(db, data["content_sid"], data["advisor_id"], data.get("user_ids", []))
     return {"message_sids": message_sids}
 
-@router.delete("/delete_user", response_model=DeleteUserResponse)
-def delete_user_route(payload: DeleteUserRequest, db: Session = Depends(get_db)):
-    logger.info(f"Delete user request received: user_id={payload.user_id}, advisor_id={payload.advisor_id}")
-    result, error = delete_user(db, payload.user_id, payload.advisor_id)
-    if error:
-        raise HTTPException(status_code=404 if error == "User not found" else 500, detail=error)
-    return DeleteUserResponse(**result)
+# @router.delete("/delete_user", response_model=DeleteUserResponse)
+# def delete_user_route(payload: DeleteUserRequest, db: Session = Depends(get_db)):
+#     logger.info(f"Delete user request received: user_id={payload.user_id}, advisor_id={payload.advisor_id}")
+#     result, error = delete_user(db, payload.user_id, payload.advisor_id)
+#     if error:
+#         raise HTTPException(status_code=404 if error == "User not found" else 500, detail=error)
+#     return DeleteUserResponse(**result)
