@@ -14,18 +14,17 @@ class QuizAnswerBatchCreate(BaseModel):
     answers: List[QuizAnswerCreate]
 
     @model_validator(mode="after")
-    def validate_answers(self, values):
-        answers = values.get("answers")
-        if len(answers) != 4:
+    def validate_answers(self) -> "QuizAnswerBatchCreate":
+        if len(self.answers) != 4:
             raise ValueError("Exactly 4 answers must be provided.")
 
-        labels = [answer.label for answer in answers]
+        labels = [answer.label for answer in self.answers]
         expected_labels = {AnswerLabel.a, AnswerLabel.b, AnswerLabel.c, AnswerLabel.d}
 
         if set(labels) != expected_labels:
             raise ValueError("Labels must include exactly one of each: a, b, c, d.")
 
-        return values
+        return self
 
 class QuizAnswerUpdate(BaseModel):
     label: Optional[AnswerLabel] = None

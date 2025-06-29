@@ -31,11 +31,11 @@ def submit_form_route(data: SubmitFormRequest, db: Session = Depends(get_db)):
 
         investor_profiles = process_quiz_flow(db, data)
 
-        # message_sid = send_whatsapp_message(data)
+        message_sid = send_whatsapp_message(data)
 
         return SubmitFormResponse(
             success=True,
-            message_sid=None,  # WIP
+            message_sid=message_sid,
             message="Thanks for completing the quiz!",
             timestamp=datetime.now(timezone.utc),
             investor_profiles=investor_profiles
@@ -46,7 +46,7 @@ def submit_form_route(data: SubmitFormRequest, db: Session = Depends(get_db)):
     try:
         new_user = create_user(db, data.model_dump())
 
-        session_manager.set_session(data.mobile_number, {
+        session_manager.set_session(data.user.mobile_number, {
             "name": new_user.name,
             "mobile_number": new_user.mobile_number,
             "email": new_user.email,

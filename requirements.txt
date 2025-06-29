@@ -8,3 +8,6 @@ twilio
 python-dotenv
 requests
 aiomysql
+email-validator
+python-jose
+watchdog

@@ -81,36 +81,24 @@ def create_user(db: Session, user_data: UserCreate) -> UserResponse:
     db.refresh(user)
     logger.info(f"New user created with ID: {user.id} at {datetime.now(timezone.utc)}")
 
-    # Link answers to the user if session_id is provided
-    if user_data.session_id:
-        answers = db.query(UserAnswer).filter(UserAnswer.session_id == user_data.session_id).all()
-        for ans in answers:
-            ans.user_id = user.id
-            ans.session_id = None  # Optional cleanup
-        db.commit()
-
     return user
 
 def process_quiz_flow(db: Session, data: SubmitFormRequest) -> List[UserInvestorProfileResponse]:
+    user_data = UserCreate(**data.user.model_dump(exclude={"is_quiz", "answers"}))
+    user = create_user(db, user_data)
+
     transformed_answers = [
         UserAnswerCreate(question_id=a.question_id, answer_id=a.answer_id)
         for a in data.answers
     ]
-
+    
     user_answers_payload = BulkUserAnswerCreate(
-        session_id=data.session_id,
         answers=transformed_answers,
-        user_id=None
+        user_id=user.id
     )
     create_bulk_user_answers_service(db, user_answers_payload)
 
-    user_data = UserCreate(**data.user.model_dump(
-        exclude={"is_quiz", "answers"}),
-        session_id=data.session_id,
-    )
-    user = create_user(db, user_data)
-
-    user_investors_profiles: list[UserInvestorProfileResponse] = calculate_and_save_user_profile(db, user.id)
+    user_investors_profiles = calculate_and_save_user_profile(db, user.id)
 
     return user_investors_profiles
 
@@ -125,12 +113,12 @@ def send_whatsapp_message(data: SubmitFormRequest):
         logger.error("Twilio configuration missing: content_sid or from_number not set")
         return None
 
-    logger.info(f"Sending WhatsApp message to: {data.mobile_number}")
+    logger.info(f"Sending WhatsApp message to: {data.user.mobile_number}")
     message = client.messages.create(
         content_sid=content_sid,
         from_=f"whatsapp:{from_number}",
-        content_variables=json.dumps({"1": data.first_name}),
-        to=f"whatsapp:{data.mobile_number}",
+        content_variables=json.dumps({"1": data.user.first_name}),
+        to=f"whatsapp:{data.user.mobile_number}",
     )
     logger.info(f"WhatsApp message sent with SID: {message.sid}")
     return message.sid

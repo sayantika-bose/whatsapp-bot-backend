@@ -14,7 +14,6 @@ class UserCreate(BaseModel):
     email: Optional[EmailStr] = None
     advisor_id: Optional[int] = 1
     age_group: Optional[AgeGroupEnum] = None
-    session_id: Optional[int] = None
     message: Optional[str] = None
 
     @property
@@ -47,7 +46,6 @@ class UserResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
-    session_id: int
 
 class UserInput(BaseModel):
     first_name: str
@@ -65,7 +63,6 @@ class AnswerInput(BaseModel):
 class SubmitFormRequest(BaseModel):
     # Quizz needs
     is_quiz: bool
-    session_id: Optional[int] = None
     answers: Optional[List[AnswerInput]]
     user: UserInput
     message: Optional[str] = None  # Make the message field optional
