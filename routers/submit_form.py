@@ -9,7 +9,8 @@ from services.user_service import send_whatsapp_message, process_quiz_flow, crea
 from models.database import get_db
 from models.user_model import (
     SubmitFormRequest,
-    SubmitFormResponse, 
+    SubmitFormResponse,
+    UserCreate, 
 )
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,8 @@ def submit_form_route(data: SubmitFormRequest, db: Session = Depends(get_db)):
     logger.info("Standard form flow detected, processing form submission")
 
     try:
-        new_user = create_user(db, data.model_dump())
+        user_data = UserCreate(**data.user.model_dump(exclude={"is_quiz", "answers"}))
+        new_user = create_user(db, user_data)
 
         session_manager.set_session(data.user.mobile_number, {
             "name": new_user.name,
@@ -60,7 +62,7 @@ def submit_form_route(data: SubmitFormRequest, db: Session = Depends(get_db)):
 
         return SubmitFormResponse(
             success=True,
-            message_sid=None,
+            message_sid=message_sid,
             message="Thanks for filling out the form...",
             timestamp=new_user.created_at,
             investor_profiles=None

@@ -63,10 +63,9 @@ class AnswerInput(BaseModel):
 class SubmitFormRequest(BaseModel):
     # Quizz needs
     is_quiz: bool
-    answers: Optional[List[AnswerInput]]
+    answers: Optional[List[AnswerInput]] = None
     user: UserInput
-    message: Optional[str] = None  # Make the message field optional
-
+    message: Optional[str] = None
     @property
     def name(self):
         return f"{self.user.first_name} {self.user.last_name}".strip()
