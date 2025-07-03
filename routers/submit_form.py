@@ -20,7 +20,7 @@ router = APIRouter()
 
 @router.post("/submit_form", response_model=SubmitFormResponse)
 def submit_form_route(data: SubmitFormRequest, db: Session = Depends(get_db)):
-    logger.info("Submit form request received")
+    logger.info(f"Submit form request received")
 
     if data.message:
         logger.info(f"Message provided: {data.message}")
@@ -32,8 +32,7 @@ def submit_form_route(data: SubmitFormRequest, db: Session = Depends(get_db)):
 
         investor_profiles = process_quiz_flow(db, data)
 
-        message_sid = send_whatsapp_message(data)
-
+        message_sid = send_whatsapp_message(data, investor_profiles=investor_profiles)
         return SubmitFormResponse(
             success=True,
             message_sid=message_sid,
