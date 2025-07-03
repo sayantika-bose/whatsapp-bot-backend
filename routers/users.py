@@ -10,6 +10,7 @@ from services.user_service import (
     get_user_replies
     # delete_user  # ✅ Import delete function
 )
+from services.auth_service import get_current_advisor
 from services.messaging_service import send_message
 from models.database import get_db
 from models.user_model import (
@@ -26,10 +27,15 @@ def create(user_data: UserCreate, db: Session = Depends(get_db)):
     return create_user(db, user_data)
 
 @router.get("/{advisor_id}", response_model=List[UserResponse])
-def get_users_route(advisor_id: int, db: Session = Depends(get_db)):
-    logger.info(f"Get users request for advisor_id: {advisor_id}")
+def get_users_route(
+    advisor_id: int,
+    db: Session = Depends(get_db),
+    current_advisor = Depends(get_current_advisor)
+):
+    logger.info(f"Get users request for advisor_id: {advisor_id} by {current_advisor.email}")
     users = get_users(db, advisor_id)
-    return [UserResponse.model_validate(u) for u in users]
+    is_admin = current_advisor.role == "admin"
+    return [user_to_response(user, is_admin=is_admin) for user in users]
 
 @router.get("/users/{advisor_id}/replies/{user_id}", response_model=List[UserRepliesResponse])
 def get_user_replies_route(advisor_id: int, user_id: int, db: Session = Depends(get_db)):

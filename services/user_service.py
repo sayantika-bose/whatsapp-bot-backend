@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from models.database import User, UserReply, DecisionTreeQuestion, UserAnswer
+from utils.encryption import encrypt_string
 import requests
 from twilio.rest import Client
 import os
@@ -69,10 +70,10 @@ def create_user(db: Session, user_data: UserCreate) -> UserResponse:
     # Create user
     user = User(
         advisor_id=user_data.advisor_id,
-        name=f"{user_data.first_name} {user_data.last_name}",
-        mobile_number=user_data.mobile_number,
-        email=user_data.email,
-        gender=user_data.gender,
+        name=encrypt_string(f"{user_data.first_name} {user_data.last_name}"),
+        mobile_number=encrypt_string(user_data.mobile_number),
+        email=encrypt_string(user_data.email),
+        gender=encrypt_string(user_data.gender),
         age_group=user_data.age_group,
         created_at=datetime.now(timezone.utc)
     )

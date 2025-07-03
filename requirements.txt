@@ -11,3 +11,4 @@ aiomysql
 email-validator
 python-jose
 watchdog
+pycryptodome
