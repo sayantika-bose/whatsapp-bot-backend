@@ -1,9 +1,11 @@
+import logging
+
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from base64 import b64encode, b64decode
 import os
 
-ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "a" * 32).encode()
+ENCRYPTION_KEY = b64decode(os.getenv("ENCRYPTION_KEY"))
 
 BLOCK_SIZE = 16
 

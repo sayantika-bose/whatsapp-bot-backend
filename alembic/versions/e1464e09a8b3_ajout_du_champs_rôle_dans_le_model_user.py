@@ -19,7 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('financial_advisors', sa.Column('role', sa.Enum('ADMIN', 'DEV', name='userroleenum'), nullable=False, server_default='dev'))
+    op.add_column('financial_advisors', sa.Column('role', sa.Enum('ADMIN', 'DEV', name='userroleenum'), nullable=False, server_default='DEV'))
 
 
 def downgrade() -> None:

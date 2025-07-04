@@ -18,5 +18,5 @@ class GenderEnum(str, Enum):
     UNSPECIFIED = "unspecified"
 
 class UserRoleEnum(str, Enum):
-    ADMIN = "admin"
-    DEV = "dev"
+    ADMIN = "ADMIN"
+    DEV = "DEV"
