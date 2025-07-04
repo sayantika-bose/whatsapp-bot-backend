@@ -19,11 +19,12 @@ class UserInvestorProfile(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, index=True)
-    profile_id = Column(Integer, ForeignKey("investor_profiles.id"))
+    profile_id = Column(Integer, ForeignKey("investor_profiles.id", ondelete="CASCADE"))
     percentage = Column(Float)
     created_at = Column(DateTime, default=datetime.now)
 
-    profile = relationship("InvestorProfile", back_populates="user_profiles")
+    profile = relationship("InvestorProfile", back_populates="user_profiles", passive_deletes=True)
+
 
 class QuizQuestion(Base):
     __tablename__ = "quiz_questions"
@@ -32,7 +33,9 @@ class QuizQuestion(Base):
     text = Column(Text, nullable=False)
     is_scored = Column(Boolean, default=True)
 
-    answers = relationship("QuizAnswer", back_populates="question")
+    answers = relationship("QuizAnswer", back_populates="question", cascade="all, delete-orphan")
+    user_answers = relationship("UserAnswer", back_populates="question", cascade="all, delete-orphan")
+
 
 class InvestorProfile(Base):
     __tablename__ = "investor_profiles"
@@ -43,9 +46,10 @@ class InvestorProfile(Base):
     description = Column(Text, nullable=False)
     emoji = Column(String(10))
     ponderation: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
-    
-    answers = relationship("QuizAnswer", back_populates="profile")
-    user_profiles = relationship("UserInvestorProfile", back_populates="profile")
+
+    answers = relationship("QuizAnswer", back_populates="profile", cascade="all, delete-orphan")
+    user_profiles = relationship("UserInvestorProfile", back_populates="profile", cascade="all, delete-orphan")
+
 
 class QuizAnswer(Base):
     __tablename__ = "quiz_answers"
@@ -53,36 +57,42 @@ class QuizAnswer(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     label = Column(SqlEnum(AnswerLabel, name="answer_label_enum", values_callable=lambda x: [e.value for e in x]), nullable=False)
     text = Column(Text, nullable=False)
-    question_id = Column(Integer, ForeignKey("quiz_questions.id"), nullable=False)
-    profile_id = Column(Integer, ForeignKey("investor_profiles.id"), nullable=False)
+    question_id = Column(Integer, ForeignKey("quiz_questions.id", ondelete="CASCADE"), nullable=False)
+    profile_id = Column(Integer, ForeignKey("investor_profiles.id", ondelete="CASCADE"), nullable=False)
 
-    question = relationship("QuizQuestion", back_populates="answers")
-    profile = relationship("InvestorProfile", back_populates="answers")
-    user_answers = relationship("UserAnswer", back_populates="answer")
+    question = relationship("QuizQuestion", back_populates="answers", passive_deletes=True)
+    profile = relationship("InvestorProfile", back_populates="answers", passive_deletes=True)
+    user_answers = relationship("UserAnswer", back_populates="answer", cascade="all, delete-orphan")
+
 
 class UserAnswer(Base):
     __tablename__ = "user_answers"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     answered_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    question_id = Column(Integer, ForeignKey("quiz_questions.id"), nullable=False)
-    answer_id = Column(Integer, ForeignKey("quiz_answers.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    question_id = Column(Integer, ForeignKey("quiz_questions.id", ondelete="CASCADE"), nullable=False)
+    answer_id = Column(Integer, ForeignKey("quiz_answers.id", ondelete="CASCADE"), nullable=False)
 
-    answer = relationship("QuizAnswer", back_populates="user_answers")
-    question = relationship("QuizQuestion")
+    user = relationship("User", back_populates="user_answers", passive_deletes=True)
+    answer = relationship("QuizAnswer", back_populates="user_answers", passive_deletes=True)
+    question = relationship("QuizQuestion", back_populates="user_answers", passive_deletes=True)
 
-# [Model definitions remain the same as before...]
+
 class DecisionTreeQuestion(Base):
     __tablename__ = "decision_tree_questions"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    advisor_id = Column(Integer, ForeignKey("financial_advisors.id"))
+    advisor_id = Column(Integer, ForeignKey("financial_advisors.id", ondelete="CASCADE"))
     question = Column(String(10000), nullable=False)
     triggerKeyword = Column(String(50))
     step = Column(Integer, nullable=False)
     next_step = Column(Integer)
     is_predefined_answer = Column(Boolean, default=False)
+    order_number = Column(Integer, nullable=False)
+
+    replies = relationship("UserReply", back_populates="question", cascade="all, delete-orphan")
+
 
 class User(Base):
     __tablename__ = "users"
@@ -92,21 +102,26 @@ class User(Base):
     name = Column(String(100), nullable=False)
     mobile_number = Column(String(20), unique=True, nullable=False)
     email = Column(String(100), unique=True)
-    advisor_id = Column(Integer, ForeignKey("financial_advisors.id"))
+    advisor_id = Column(Integer, ForeignKey("financial_advisors.id", ondelete="CASCADE"))
     age_group = Column(SqlEnum(AgeGroupEnum), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    user_answers = relationship("UserAnswer", back_populates="user", cascade="all, delete-orphan")
+    user_replies = relationship("UserReply", back_populates="user", cascade="all, delete-orphan")
+
 
 class Article(Base):
     __tablename__ = "articles"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    advisor_id = Column(Integer, ForeignKey("financial_advisors.id"), nullable=False)
+    advisor_id = Column(Integer, ForeignKey("financial_advisors.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
     image_base64 = Column(Text, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
-    advisor = relationship("FinancialAdvisor", back_populates="articles")
+    advisor = relationship("FinancialAdvisor", back_populates="articles", passive_deletes=True)
+
 
 class FinancialAdvisor(Base):
     __tablename__ = "financial_advisors"
@@ -118,21 +133,27 @@ class FinancialAdvisor(Base):
     password = Column(String(255), nullable=False)
     role = Column(SqlEnum(UserRoleEnum), nullable=False, default=UserRoleEnum.DEV)
 
-    articles = relationship("Article", back_populates="advisor")
+    articles = relationship("Article", back_populates="advisor", cascade="all, delete-orphan")
+
 
 class UserReply(Base):
     __tablename__ = "user_replies"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    question_id = Column(Integer, ForeignKey("decision_tree_questions.id"))
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    question_id = Column(Integer, ForeignKey("decision_tree_questions.id", ondelete="CASCADE"), nullable=False)
     reply = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    user = relationship("User", back_populates="user_replies", passive_deletes=True)
+    question = relationship("DecisionTreeQuestion", back_populates="replies", passive_deletes=True)
+
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 def init_db():
     try:
@@ -142,6 +163,7 @@ def init_db():
     except Exception as e:
         logger.error(f"Failed to initialize database: {str(e)}")
         raise
+
 
 def get_db():
     db = SessionLocal()
