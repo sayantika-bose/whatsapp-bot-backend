@@ -82,6 +82,8 @@ app = FastAPI(redirect_slashes=False)
 
 origins = [
     "https://admin.myadvisor.sg",
+    "https://myadvisor.sg",
+    "https://my-advisor-test.vercel.app",
     "http://localhost:3000",
 ]
 
