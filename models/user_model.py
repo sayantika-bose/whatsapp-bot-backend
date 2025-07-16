@@ -38,14 +38,22 @@ class UserResponse(BaseModel):
     advisor_id: Optional[int]
     age_group: Optional[AgeGroupEnum]
     created_at: datetime
-    success: Optional[bool]
-    message_sid: Optional[str]
-    message: Optional[str]
-    timestamp: datetime
+    success: Optional[bool] = None
+    message_sid: Optional[str] = None
+    message: Optional[str] = None
+    timestamp: Optional[datetime] = None 
 
     model_config = {
         "from_attributes": True
     }
+
+class DeleteUserRequest(BaseModel):
+    user_id: int
+    advisor_id: int
+
+class DeleteUserResponse(BaseModel):
+    message: str
+    user_id: int
 
 class UserInput(BaseModel):
     first_name: str
@@ -62,11 +70,10 @@ class AnswerInput(BaseModel):
 
 class SubmitFormRequest(BaseModel):
     # Quizz needs
-    is_quiz: bool
-    answers: Optional[List[AnswerInput]]
+    is_quiz: bool = False
+    answers: Optional[List[AnswerInput]] = []
     user: UserInput
-    message: Optional[str] = None  # Make the message field optional
-
+    message: Optional[str] = None
     @property
     def name(self):
         return f"{self.user.first_name} {self.user.last_name}".strip()

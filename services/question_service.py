@@ -1,4 +1,6 @@
 import logging
+from fastapi import HTTPException
+from pymysql import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from models.database import DecisionTreeQuestion
@@ -43,11 +45,19 @@ def delete_question(db: Session, question_id: int):
     logger.info(f"Deleting question ID: {question_id}")
     question = db.query(DecisionTreeQuestion).filter_by(id=question_id).first()
     if question:
-        db.delete(question)
-        db.commit()
-        remaining_questions = db.query(DecisionTreeQuestion).order_by(DecisionTreeQuestion.id).all()
+        try:
+            db.delete(question)
+            db.commit()
+        except IntegrityError as e:
+            db.rollback()
+            logger.error(f"IntegrityError while deleting question ID {question_id}: {e}")
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot delete question due to related user replies."
+            )
+        remaining_questions = db.query(DecisionTreeQuestion).order_by(DecisionTreeQuestion.order_number).all()
         for idx, q in enumerate(remaining_questions, 1):
-            q.id = idx
+            q.order_number = idx 
         db.commit()
         logger.info(f"Question ID: {question_id} deleted and IDs reordered")
         return True
