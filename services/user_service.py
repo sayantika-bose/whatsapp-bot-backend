@@ -24,16 +24,16 @@ logger = logging.getLogger(__name__)
 user_sessions = {}
 
 PROFILE_IMAGE_URLS = {
-    1: "Wall%20Street%20Warrior.jpg",
-    2: "Smart%20Saver%201.jpg",
-    3: "Cautious%20Climber.jpg",
-    4: "Yolo%20Investor.jpg",
-    5: "Real%20Estate%20Tycoon.jpg",
-    6: "Real%20Estate%20Tycoon.jpg",
-    7: "Gold%20and%20Safe%20haven%20Guru.jpg",
-    8: "Fomo%20Trader.jpg",
-    9: "Fomo%20Trader.jpg",
-    10: "Investment%20newbie.jpg",
+    1: "wall_street_warrior.png",
+    2: "the_smart_saver.png",
+    3: "cautious_climber.png",
+    4: "the_yolo_investor.png",
+    5: "real_estate_tycoon.png",
+    6: "dividend_king.png",
+    7: "gold_safe_haven_guru.png",
+    8: "fomo_trader.png",
+    9: "retirement_planner.png",
+    10: "investment_newbie.png",
 }
 
 # Twilio client initialization (moved outside functions for reuse)
