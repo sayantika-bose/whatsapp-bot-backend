@@ -107,21 +107,41 @@ def send_whatsapp_message(data: SubmitFormRequest):
         logger.error("Twilio client not initialized, skipping WhatsApp message")
         return None
 
-    content_sid = os.getenv("FIRST_CONTENT_SID")
+    if data.is_quiz:
+        content_sid = os.getenv("QUIZ_CONTENT_SID")
+    else:
+        content_sid = os.getenv("FIRST_CONTENT_SID")
+
     from_number = os.getenv("TWILIO_PHONE_NUMBER")
+
     if not content_sid or not from_number:
         logger.error("Twilio configuration missing: content_sid or from_number not set")
         return None
 
     logger.info(f"Sending WhatsApp message to: {data.user.mobile_number}")
-    message = client.messages.create(
-        content_sid=content_sid,
-        from_=f"whatsapp:{from_number}",
-        content_variables=json.dumps({"1": data.user.first_name}),
-        to=f"whatsapp:{data.user.mobile_number}",
-    )
-    logger.info(f"WhatsApp message sent with SID: {message.sid}")
-    return message.sid
+
+    if data.is_quiz:
+        content_variables = {
+            "1": data.user.first_name,
+            "2": "FOMO TRADER"
+        }
+    else:
+        content_variables = {
+            "1": data.user.first_name
+        }
+
+    try:
+        message = client.messages.create(
+            content_sid=content_sid,
+            from_=f"whatsapp:{from_number}",
+            content_variables=json.dumps(content_variables),
+            to=f"whatsapp:{data.user.mobile_number}",
+        )
+        logger.info(f"WhatsApp message sent with SID: {message.sid}")
+        return message.sid
+    except Exception as e:
+        logger.error(f"Failed to send WhatsApp message: {str(e)}")
+        return None
 
 def get_users(db: Session, advisor_id: int):
     """
