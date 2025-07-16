@@ -66,6 +66,9 @@ def submit_form_route(data: SubmitFormRequest, db: Session = Depends(get_db)):
             timestamp=new_user.created_at,
             investor_profiles=None
         )
+    except HTTPException as e:
+        logger.error(f"HTTP error during form submission: {str(e.detail)}")
+        raise e 
 
     except KeyError as e:
         logger.error(f"Missing required field in form data: {str(e)}")

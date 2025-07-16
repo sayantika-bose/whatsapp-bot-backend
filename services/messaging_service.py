@@ -86,6 +86,11 @@ async def handle_webhook(db: AsyncSession, request: Request) -> Response:
 
             advisor_id = user_data["advisor_id"]
         
+            # ==== Handle incorrect start command ====
+            if user_data["current_step"] is None and incoming_msg != "start":
+                twiml_response.message("Please reply with 'start' to begin the conversation.")
+                return Response(content=str(twiml_response), media_type="application/xml")
+
             # ==== Start of session ====
             if user_data["current_step"] is None and incoming_msg == "start":
                 try:

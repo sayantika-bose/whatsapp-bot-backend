@@ -89,7 +89,6 @@ class DecisionTreeQuestion(Base):
     step = Column(Integer, nullable=False)
     next_step = Column(Integer)
     is_predefined_answer = Column(Boolean, default=False)
-    order_number = Column(Integer, nullable=False)
 
     replies = relationship("UserReply", back_populates="question", cascade="all, delete-orphan")
 
