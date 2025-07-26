@@ -4,6 +4,7 @@ from typing import List
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from models.enums import UserRoleEnum
 from utils.decrypt_field import user_to_response
 
 from services.user_service import (
@@ -32,7 +33,9 @@ def create(
     db: Session = Depends(get_db),
     current_advisor = Depends(get_current_advisor)
     ):
-    return create_user(db, user_data, current_advisor)
+    is_admin: bool = current_advisor.role == UserRoleEnum.ADMIN
+
+    return create_user(db, user_data, is_admin=is_admin)
 
 @router.get("/{advisor_id}", response_model=List[UserResponse])
 def get_users_route(
@@ -42,7 +45,7 @@ def get_users_route(
 ):
     logger.info(f"Get users request for advisor_id: {advisor_id} by {current_advisor.email}")
     users = get_users(db, advisor_id)
-    is_admin = current_advisor.role == "admin"
+    is_admin = current_advisor.role == UserRoleEnum.ADMIN
     return [user_to_response(user, is_admin=is_admin) for user in users]
 
 @router.get("/{advisor_id}/replies/{user_id}", response_model=List[UserRepliesResponse])

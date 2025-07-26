@@ -11,7 +11,7 @@ class UserCreate(BaseModel):
     first_name: str
     last_name: str
     mobile_number: str
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     advisor_id: Optional[int] = 1
     age_group: Optional[AgeGroupEnum] = None
     message: Optional[str] = None
@@ -25,7 +25,7 @@ class UserUpdate(BaseModel):
     gender: Optional[GenderEnum] = None
     name: Optional[str] = None
     mobile_number: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     advisor_id: Optional[int] = None
     age_group: Optional[AgeGroupEnum] = None
 
@@ -34,7 +34,7 @@ class UserResponse(BaseModel):
     gender: Optional[GenderEnum]
     name: str
     mobile_number: str
-    email: Optional[EmailStr]
+    email: Optional[str]
     advisor_id: Optional[int]
     age_group: Optional[AgeGroupEnum]
     created_at: datetime
@@ -60,7 +60,7 @@ class UserInput(BaseModel):
     last_name: str
     mobile_number: str
     advisor_id: Optional[int] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     gender: Optional[GenderEnum] = GenderEnum.UNSPECIFIED
     age_group: Optional[AgeGroupEnum] = None
 

@@ -3,8 +3,11 @@ from typing import List, Optional, Tuple
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from models.database import User, UserReply, DecisionTreeQuestion, UserAnswer
-from utils.encryption import encrypt_string
+from models.database import User, UserReply, DecisionTreeQuestion
+from models.enums import UserRoleEnum
+from services.auth_service import get_current_advisor
+from utils.decrypt_field import user_to_response
+from utils.encryption import decrypt_string, encrypt_string
 import requests
 from twilio.rest import Client
 import os
@@ -15,8 +18,6 @@ from datetime import datetime, timezone  # Added for timestamp
 from models.user_answer_model import UserAnswerCreate, BulkUserAnswerCreate
 from models.user_investor_profile_model import UserInvestorProfileResponse
 from models.user_model import UserResponse, SubmitFormRequest, UserCreate
-from services.auth_service import get_current_advisor
-from services.session_manager import session_manager  # Import session manager
 from services.user_answer_service import create_bulk_user_answers_service
 from services.user_investor_profile_service import calculate_and_save_user_profile
 
@@ -77,19 +78,33 @@ def verify_recaptcha(token: str) -> bool:
 def create_user(
     db: Session,
     user_data: UserCreate,
-    current_advisor) -> UserResponse:
+    is_admin: bool = False,   
+    ) -> UserResponse:
+    encrypted_mobile = encrypt_string(user_data.mobile_number)
+    encrypted_email = encrypt_string(user_data.email) if user_data.email else None
+    
+    # TODO: with a large user base, this check has to be optimized
     # Check for uniqueness
-    if db.query(User).filter(User.mobile_number == user_data.mobile_number).first():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mobile number already registered.")
-    if user_data.email and db.query(User).filter(User.email == user_data.email).first():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered.")
+    existing_users = db.query(User).all()
 
+    for existing_user in existing_users:
+        if decrypt_string(existing_user.mobile_number) == user_data.mobile_number:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Mobile number already registered."
+            )
+        
+        if user_data.email and decrypt_string(existing_user.email) == user_data.email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered."
+            )
     # Create user
     user = User(
         advisor_id=user_data.advisor_id,
         name=encrypt_string(f"{user_data.first_name} {user_data.last_name}"),
-        mobile_number=encrypt_string(user_data.mobile_number),
-        email=encrypt_string(user_data.email),
+        mobile_number=encrypted_mobile,
+        email=encrypted_email,
         gender=user_data.gender,
         age_group=user_data.age_group,
         created_at=datetime.now(timezone.utc)
@@ -98,8 +113,6 @@ def create_user(
     db.commit()
     db.refresh(user)
     logger.info(f"New user created with ID: {user.id} at {datetime.now(timezone.utc)}")
-
-    is_admin = current_advisor.role == "admin"
 
     return  user_to_response(user, is_admin)
 

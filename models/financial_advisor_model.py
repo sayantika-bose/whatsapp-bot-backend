@@ -5,20 +5,20 @@ from models.enums import UserRoleEnum
 
 class FinancialAdvisorCreate(BaseModel):
     name: str
-    email: EmailStr
+    email: str
     password: str
     role: Optional[UserRoleEnum] = UserRoleEnum.DEV
 
 class FinancialAdvisorUpdate(BaseModel):
     name: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     password: Optional[str] = None
     role: Optional[UserRoleEnum] = UserRoleEnum.DEV
 
 class FinancialAdvisorResponse(BaseModel):
     id: int
     name: str
-    email: EmailStr
+    email: str
     role: UserRoleEnum
 
     model_config = {

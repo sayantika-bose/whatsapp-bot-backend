@@ -99,7 +99,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     gender = Column(SqlEnum(GenderEnum), nullable=True)
     name = Column(String(100), nullable=False)
-    mobile_number = Column(String(20), unique=True, nullable=False)
+    mobile_number = Column(String(100), unique=True, nullable=False)
     email = Column(String(100), unique=True)
     advisor_id = Column(Integer, ForeignKey("financial_advisors.id", ondelete="CASCADE"))
     age_group = Column(SqlEnum(AgeGroupEnum), nullable=False)

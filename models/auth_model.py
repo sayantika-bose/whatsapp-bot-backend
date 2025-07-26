@@ -4,7 +4,7 @@ from typing import Optional
 from models.financial_advisor_model import FinancialAdvisorResponse
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 class TokenData(BaseModel):

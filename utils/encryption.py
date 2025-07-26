@@ -5,6 +5,8 @@ from Crypto.Random import get_random_bytes
 from base64 import b64encode, b64decode
 import os
 
+logger = logging.getLogger(__name__)
+
 ENCRYPTION_KEY = b64decode(os.getenv("ENCRYPTION_KEY"))
 
 BLOCK_SIZE = 16
@@ -18,6 +20,9 @@ def unpad(data: bytes) -> bytes:
     return data[:-padding_len]
 
 def encrypt_string(plain_text: str) -> str:
+    if not plain_text:
+        logger.info("Attempted to encrypt empty string.")
+        return None
     cipher = AES.new(ENCRYPTION_KEY, AES.MODE_CBC)
     ct_bytes = cipher.encrypt(pad(plain_text.encode()))
     iv = b64encode(cipher.iv).decode()
@@ -25,7 +30,15 @@ def encrypt_string(plain_text: str) -> str:
     return f"{iv}:{ct}"
 
 def decrypt_string(encrypted_data: str) -> str:
-    iv, ct = encrypted_data.split(":")
-    cipher = AES.new(ENCRYPTION_KEY, AES.MODE_CBC, b64decode(iv))
-    pt = unpad(cipher.decrypt(b64decode(ct)))
-    return pt.decode()
+    if not encrypted_data:
+        logger.info(f"Skipping decryption: invalid format or empty string -> {encrypted_data}")
+        return ""
+
+    try:
+        iv, ct = encrypted_data.split(":")
+        cipher = AES.new(ENCRYPTION_KEY, AES.MODE_CBC, b64decode(iv))
+        pt = unpad(cipher.decrypt(b64decode(ct)))
+        return pt.decode()
+    except Exception as e:
+        logger.error(f"Decryption failed for input: {encrypted_data} — {str(e)}")
+        return ""

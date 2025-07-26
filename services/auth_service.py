@@ -126,19 +126,19 @@ def decode_token(token: HTTPAuthorizationCredentials = Security(security)) -> di
         )
 
 def get_current_advisor(
-    token: str = Depends(oauth2_scheme),
+    token: HTTPAuthorizationCredentials = Security(security),
     db: Session = Depends(get_db)
 ) -> FinancialAdvisor:
     """Get the current authenticated advisor from the token."""
     try:
-        # Check if token is blacklisted
-        if token in token_blacklist:
+        token_str = token.credentials
+
+        if token_str in token_blacklist:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token revoked"
             )
 
-    
         payload = decode_token(token)
         email: str = payload.get("sub")
 

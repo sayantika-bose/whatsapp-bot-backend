@@ -7,12 +7,19 @@ from datetime import datetime
 
 def user_to_response(user: User, is_admin: bool) -> UserResponse:
     try:
+        name = decrypt_string(user.name) if is_admin and user.name else "**** ****"
+        mobile = decrypt_string(user.mobile_number) if is_admin and user.mobile_number else "****"
+        email = (
+            decrypt_string(user.email) if is_admin and user.email
+            else None if is_admin
+            else "****"
+        )        
         return UserResponse(
             id=user.id,
             gender=GenderEnum(user.gender) if user.gender else GenderEnum.UNSPECIFIED,
-            name=f"{decrypt_string(user.name)}" if is_admin else "**** ****",
-            mobile_number=decrypt_string(user.mobile_number) if is_admin else "****",
-            email=decrypt_string(user.email) if is_admin else "****@gmail.com",
+            name=name,
+            mobile_number=mobile,
+            email=email,
             advisor_id=user.advisor_id,
             age_group=AgeGroupEnum(user.age_group) if user.age_group else None,
             created_at=user.created_at,
@@ -30,7 +37,7 @@ def user_to_response(user: User, is_admin: bool) -> UserResponse:
             gender=GenderEnum.UNSPECIFIED,
             name="**** ****",
             mobile_number="****",
-            email="****@gmail.com",
+            email="****",
             advisor_id=user.advisor_id,
             age_group=None,
             created_at=user.created_at,
