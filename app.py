@@ -143,7 +143,8 @@ app.include_router(
 app.include_router(
     financial_advisors.router,
     prefix="/financial_advisors",
-    tags=["Financial Advisors"]
+    tags=["Financial Advisors"],
+    dependencies=[Depends(decode_token)]
 )
 
 app.include_router(

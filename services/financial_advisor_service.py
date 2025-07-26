@@ -21,7 +21,8 @@ def create_advisor(db: Session, advisor_data: FinancialAdvisorCreate) -> Financi
     advisor = FinancialAdvisor(
         name=advisor_data.name,
         email=str(advisor_data.email),
-        password=hashed_password
+        password=hashed_password,
+        role=advisor_data.role or UserRoleEnum.DEV
     )
     db.add(advisor)
     db.commit()

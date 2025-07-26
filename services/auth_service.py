@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Union
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -125,20 +126,22 @@ def decode_token(token: HTTPAuthorizationCredentials = Security(security)) -> di
         )
 
 def get_current_advisor(
-    token: str = Depends(oauth2_scheme),
+    token: HTTPAuthorizationCredentials = Security(security),
     db: Session = Depends(get_db)
 ) -> FinancialAdvisor:
     """Get the current authenticated advisor from the token."""
     try:
-        # Check if token is blacklisted
-        if token in token_blacklist:
+        token_str = token.credentials
+
+        if token_str in token_blacklist:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token revoked"
             )
-            
+
         payload = decode_token(token)
         email: str = payload.get("sub")
+
         if email is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -151,6 +154,7 @@ def get_current_advisor(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User not found"
             )
+        logger.error(f"Authenticated advisor: id={advisor.id}, email={advisor.email}, role={advisor.role}")
         return advisor
     except HTTPException:
         raise
@@ -183,6 +187,7 @@ def login(db: Session, email: str, password: str) -> dict:
             "id": advisor.id,
             "name": advisor.name,
             "email": advisor.email,
+            "role": advisor.role,
             "access_token": access_token,
             "refresh_token": refresh_token,
             "token_type": "bearer"

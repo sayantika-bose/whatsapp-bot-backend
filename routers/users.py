@@ -4,12 +4,16 @@ from typing import List
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from models.enums import UserRoleEnum
+from utils.decrypt_field import user_to_response
+
 from services.user_service import (
     create_user,
     delete_user,
     get_users,
     get_user_replies
 )
+from services.auth_service import get_current_advisor
 from services.messaging_service import send_message
 from models.database import get_db
 from models.user_model import (
@@ -24,14 +28,25 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.post("/", response_model=UserResponse)
-def create(user_data: UserCreate, db: Session = Depends(get_db)):
-    return create_user(db, user_data)
+def create(
+    user_data: UserCreate,
+    db: Session = Depends(get_db),
+    current_advisor = Depends(get_current_advisor)
+    ):
+    is_admin: bool = current_advisor.role == UserRoleEnum.ADMIN
+
+    return create_user(db, user_data, is_admin=is_admin)
 
 @router.get("/{advisor_id}", response_model=List[UserResponse])
-def get_users_route(advisor_id: int, db: Session = Depends(get_db)):
-    logger.info(f"Get users request for advisor_id: {advisor_id}")
+def get_users_route(
+    advisor_id: int,
+    db: Session = Depends(get_db),
+    current_advisor = Depends(get_current_advisor)
+):
+    logger.info(f"Get users request for advisor_id: {advisor_id} by {current_advisor.email}")
     users = get_users(db, advisor_id)
-    return [UserResponse.model_validate(u) for u in users]
+    is_admin = current_advisor.role == UserRoleEnum.ADMIN
+    return [user_to_response(user, is_admin=is_admin) for user in users]
 
 @router.get("/{advisor_id}/replies/{user_id}", response_model=List[UserRepliesResponse])
 def get_user_replies_route(advisor_id: int, user_id: int, db: Session = Depends(get_db)):

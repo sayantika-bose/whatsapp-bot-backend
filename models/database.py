@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime, timezone
 
-from models.enums import AnswerLabel, AgeGroupEnum, GenderEnum
+from models.enums import AnswerLabel, AgeGroupEnum, GenderEnum, UserRoleEnum
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -99,7 +99,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     gender = Column(SqlEnum(GenderEnum), nullable=True)
     name = Column(String(100), nullable=False)
-    mobile_number = Column(String(20), unique=True, nullable=False)
+    mobile_number = Column(String(100), unique=True, nullable=False)
     email = Column(String(100), unique=True)
     advisor_id = Column(Integer, ForeignKey("financial_advisors.id", ondelete="CASCADE"))
     age_group = Column(SqlEnum(AgeGroupEnum), nullable=False)
@@ -130,6 +130,7 @@ class FinancialAdvisor(Base):
     mobile_number = Column(String(20), unique=True)
     email = Column(String(100), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
+    role = Column(SqlEnum(UserRoleEnum), nullable=False, default=UserRoleEnum.DEV)
 
     articles = relationship("Article", back_populates="advisor", cascade="all, delete-orphan")
 

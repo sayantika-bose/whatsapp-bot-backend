@@ -31,7 +31,8 @@ async def login_route(
         advisor_data = {
             "id": tokens["id"],
             "name": tokens["name"],
-            "email": tokens["email"]
+            "email": tokens["email"],
+            "role": tokens["role"]
         }
         return TokenResponse(
             access_token=tokens["access_token"],

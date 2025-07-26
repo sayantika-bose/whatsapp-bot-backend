@@ -12,3 +12,4 @@ email-validator
 python-jose
 watchdog
 python-multipart
+pycryptodome
